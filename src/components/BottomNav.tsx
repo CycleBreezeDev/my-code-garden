@@ -1,7 +1,20 @@
 import { Home, Ticket, Trophy, Rss, HelpCircle } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+
+/**
+ * Smoothly scroll an element with the given id into view, accounting for
+ * the fixed top navbar (~5rem). Returns true if the element was found.
+ */
+const smoothScrollToId = (id: string): boolean => {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  const top = el.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top, behavior: "smooth" });
+  return true;
+};
 
 interface Item {
   label: string;
@@ -43,6 +56,19 @@ const isItemActive = (pathname: string, item: Item): boolean => {
 export const BottomNav = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // When the route changes to "/" with #how-it-works, smooth-scroll once
+  // the section has rendered (handles cross-page FAQ navigation).
+  useEffect(() => {
+    if (location.pathname === "/" && location.hash === "#how-it-works") {
+      // Wait one frame so the home page sections are mounted.
+      const id = window.requestAnimationFrame(() => {
+        smoothScrollToId("how-it-works");
+      });
+      return () => window.cancelAnimationFrame(id);
+    }
+  }, [location.pathname, location.hash]);
 
   const items: Item[] = [
     {
@@ -97,6 +123,22 @@ export const BottomNav = () => {
               <Link
                 to={item.to}
                 aria-current={active ? "page" : undefined}
+                onClick={(e) => {
+                  // Special-case the FAQ link: if we're already on the
+                  // home page, smooth-scroll to the section instead of
+                  // letting the router re-render with a fresh scroll
+                  // position. We still update the URL hash via
+                  // history.pushState so the browser back button takes
+                  // the user back to the previous scroll position.
+                  if (item.label === "FAQ" && location.pathname === "/") {
+                    e.preventDefault();
+                    if (smoothScrollToId("how-it-works")) {
+                      if (location.hash !== "#how-it-works") {
+                        navigate("/#how-it-works", { replace: false });
+                      }
+                    }
+                  }
+                }}
                 className={cn(
                   "flex h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
                   active
