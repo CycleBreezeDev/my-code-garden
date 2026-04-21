@@ -243,10 +243,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      join_syndicate: {
-        Args: { _shares: number; _syndicate_id: string }
-        Returns: string
-      }
+      join_syndicate:
+        | { Args: { _shares: number; _syndicate_id: string }; Returns: string }
+        | {
+            Args: {
+              _reference?: string
+              _shares: number
+              _syndicate_id: string
+            }
+            Returns: string
+          }
       join_syndicate_for_user: {
         Args: {
           _reference: string
