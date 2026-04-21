@@ -236,6 +236,23 @@ const LotteryDetail = () => {
   const [lines, setLines] = useState(initial?.lines ?? 1);
   const [buying, setBuying] = useState(false);
 
+  // Snapshot of the just-purchased ticket for the confirmation dialog.
+  // Captured *before* state is cleared so the dialog can show what was
+  // actually bought even after picks reset to empty.
+  type Confirmation = {
+    ticketId: string;
+    drawDate: string;
+    main: number[];
+    bonus: number[];
+    lines: number;
+    total: number;
+    currency: string;
+    pricePerLine: number;
+    discount: number;
+    paymentReference: string;
+  };
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+
   // Persist picks + lines whenever they change. Empty selections clear
   // the slot so we don't waste storage on a blank slate. Wrapped in a
   // try/catch because Safari private mode can throw on setItem.
