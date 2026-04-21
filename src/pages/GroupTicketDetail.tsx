@@ -94,8 +94,13 @@ const GroupTicketDetail = () => {
   const [picks, setPicks] = useState<LuckyPick[]>([]);
   const [myMembershipId, setMyMembershipId] = useState<string | null>(null);
   const ticketsRef = useRef<HTMLDivElement | null>(null);
-  const scrollToTickets = () => {
-    ticketsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const [verifyShare, setVerifyShare] = useState<number | null>(null);
+  const handleVerifyShare = (shareIndex: number) => {
+    setVerifyShare(shareIndex);
+    // Smooth scroll then nudge so the highlighted scan sits below the sticky navbar
+    requestAnimationFrame(() => {
+      ticketsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const { data: group, isLoading } = useQuery({
