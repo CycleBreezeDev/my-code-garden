@@ -8,7 +8,8 @@ interface Props {
   shares: number;
   picks: SyndicatePickRow[];
   color?: string;
-  onVerify?: () => void;
+  /** Called with the share index when the user clicks "Verify on ticket". */
+  onVerify?: (shareIndex: number) => void;
   showVerifyAction?: boolean;
 }
 
