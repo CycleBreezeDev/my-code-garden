@@ -199,8 +199,11 @@ const Syndicates = () => {
                       <div className="mb-2 text-xs text-muted-foreground">
                         Time left to play <span className="font-medium text-card-foreground">{dayName(group.draw.draw_date)}</span> draw:
                       </div>
-                      <div className="mb-5">
+                      <div className="mb-2">
                         <CountdownTimer totalSeconds={secondsUntil(group.draw.draw_date)} />
+                      </div>
+                      <div className="mb-3 text-[10px] text-muted-foreground">
+                        {formatDrawDate(group.draw.draw_date, "full")}
                       </div>
                       <Link to={`/group/${group.slug}`} className="mt-auto w-full">
                         <Button className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">
