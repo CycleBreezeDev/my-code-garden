@@ -38,10 +38,28 @@ export const DisplayPrice = ({
 }: Props) => {
   const { currency: targetCurrency } = useCurrency();
   const sameCurrency = sourceCurrency.toUpperCase() === targetCurrency.toUpperCase();
-  const { data: rate, isError } = useFxRate(sourceCurrency, targetCurrency);
+  const { data: rate, isError, isLoading } = useFxRate(sourceCurrency, targetCurrency);
 
-  // Same currency, or no rate yet, or rate fetch failed → render source.
-  if (sameCurrency || rate == null || isError) {
+  // Same currency → render source immediately (no conversion needed).
+  if (sameCurrency) {
+    return (
+      <span className={cn("tabular-nums", className)}>
+        {formatCurrency(amount, sourceCurrency)}
+      </span>
+    );
+  }
+
+  // Loading state: show skeleton to prevent layout shift.
+  if (isLoading) {
+    return (
+      <span className={cn("tabular-nums inline-flex items-center", className)}>
+        <span className="inline-block h-4 w-16 animate-pulse rounded bg-muted" />
+      </span>
+    );
+  }
+
+  // Rate fetch failed → fall back to original.
+  if (rate == null || isError) {
     return (
       <span className={cn("tabular-nums", className)}>
         {formatCurrency(amount, sourceCurrency)}
