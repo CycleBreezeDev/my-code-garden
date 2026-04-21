@@ -94,7 +94,20 @@ const HeroSection = () => {
         >
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5">
             <slide.badge.icon className="h-3.5 w-3.5 text-primary" />
-            <span className="text-sm font-medium text-primary">{slide.badge.text}</span>
+            <span className="text-sm font-medium text-primary">
+              {slide.badge.amount ? (
+                <>
+                  {slide.badge.text}
+                  <DisplayPrice 
+                    amount={slide.badge.amount} 
+                    sourceCurrency={slide.badge.currency || "USD"}
+                    className="ml-1"
+                  />
+                </>
+              ) : (
+                slide.badge.text
+              )}
+            </span>
           </div>
 
           <h1 className="mb-6 font-heading text-5xl font-extrabold leading-[1.1] tracking-tight lg:text-7xl">
