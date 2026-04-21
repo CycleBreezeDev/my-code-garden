@@ -1,10 +1,11 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ImageCropDialog } from "./ImageCropDialog";
 
 interface AvatarUploaderProps {
   currentUrl: string | null;
@@ -13,17 +14,22 @@ interface AvatarUploaderProps {
 }
 
 /**
- * Avatar picker — uploads to the public `avatars` bucket under
- * `<auth.uid()>/avatar-<ts>.<ext>` (storage RLS scopes writes to the user's
- * own folder). The generated public URL is handed back via `onChange` so the
- * parent can persist it on `profiles.avatar_url` and rollback on failure.
+ * Avatar picker — opens a square crop+zoom dialog before uploading the
+ * resulting 512×512 JPEG to the public `avatars` bucket under
+ * `<auth.uid()>/avatar-<ts>.jpg`.
  */
 export const AvatarUploader = ({ currentUrl, fallback, onChange }: AvatarUploaderProps) => {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
 
-  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
+  // Revoke object URL when the dialog closes to avoid memory leaks.
+  useEffect(() => () => {
+    if (pendingSrc) URL.revokeObjectURL(pendingSrc);
+  }, [pendingSrc]);
+
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !user) return;
@@ -31,16 +37,20 @@ export const AvatarUploader = ({ currentUrl, fallback, onChange }: AvatarUploade
       toast.error("Please pick an image file");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5 MB");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10 MB");
       return;
     }
+    setPendingSrc(URL.createObjectURL(file));
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (!user) return;
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+    const path = `${user.id}/avatar-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, {
       upsert: false,
-      contentType: file.type,
+      contentType: "image/jpeg",
     });
     if (upErr) {
       toast.error(upErr.message);
@@ -50,6 +60,7 @@ export const AvatarUploader = ({ currentUrl, fallback, onChange }: AvatarUploade
     const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
     await onChange(pub.publicUrl);
     setUploading(false);
+    setPendingSrc(null);
     toast.success("Avatar updated");
   };
 
@@ -101,6 +112,18 @@ export const AvatarUploader = ({ currentUrl, fallback, onChange }: AvatarUploade
           </Button>
         )}
       </div>
+      <ImageCropDialog
+        open={!!pendingSrc}
+        imageSrc={pendingSrc}
+        aspect={1}
+        cropShape="round"
+        outputWidth={512}
+        title="Crop your avatar"
+        description="Drag to reposition and use the slider to zoom. Avatars are saved as a square."
+        busy={uploading}
+        onCancel={() => setPendingSrc(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 };
