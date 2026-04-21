@@ -55,10 +55,28 @@ const formatCountdown = (s: number) => {
   return d > 0 ? `${d}d ${h}h` : `${h}h`;
 };
 
+// Valid tab values for the dashboard. Anything else falls back to "overview".
+type DashboardTab = "overview" | "tickets" | "wallet";
+const VALID_TABS: ReadonlyArray<DashboardTab> = ["overview", "tickets", "wallet"];
+
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  // Drive the active tab from `?tab=` so deep-links from the bottom nav
+  // (e.g. /dashboard?tab=tickets) land users on the focused view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: DashboardTab = (VALID_TABS as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as DashboardTab)
+    : "overview";
+  const setActiveTab = (next: DashboardTab) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
 
   const { data: memberships, isLoading } = useQuery({
     queryKey: ["my-memberships", user?.id],
