@@ -363,17 +363,19 @@ const Dashboard = () => {
             )}
           </div>
 
-          <div className="mt-6">
-            <MyPayoutsSection />
-          </div>
+              <div className="mt-6">
+                <MyPayoutsSection />
+              </div>
 
-          <div className="mt-6">
-            <MyTicketsSection />
-          </div>
+              <div className="mt-6">
+                <MyTicketsSection />
+              </div>
 
-          <div className="mt-6">
-            <TransactionsList />
-          </div>
+              <div className="mt-6">
+                <TransactionsList />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
