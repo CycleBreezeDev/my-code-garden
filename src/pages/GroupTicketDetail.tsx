@@ -315,13 +315,18 @@ const GroupTicketDetail = () => {
                   picksLockOffsetMinutes={group.picks_lock_offset_minutes ?? 120}
                   syndicateName={group.name}
                   lotteryColor={color}
-                  onVerifyOnTicket={scrollToTickets}
+                  onVerifyOnTicket={handleVerifyShare}
                 />
               )}
 
               {membership && (
                 <div ref={ticketsRef} id="ticket-scans">
-                  <MyTicketsSection syndicateFilter={group.id} highlightSyndicateId={group.id} />
+                  <MyTicketsSection
+                    syndicateFilter={group.id}
+                    highlightSyndicateId={group.id}
+                    highlightShareIndex={verifyShare}
+                    onHighlightConsumed={() => setVerifyShare(null)}
+                  />
                 </div>
               )}
             </div>
