@@ -82,7 +82,7 @@ export const SecretsAudit = () => {
       )}
 
       {data && missing.length === 0 && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           All required secrets are configured.
         </div>
@@ -112,7 +112,7 @@ export const SecretsAudit = () => {
                       <span className="text-[11px] text-muted-foreground">
                         {s.length} chars
                       </span>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                     </>
                   ) : (
                     <>
