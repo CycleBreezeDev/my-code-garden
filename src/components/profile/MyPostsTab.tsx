@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquarePlus, Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { FeedCard } from "@/components/social/FeedCard";
 import type { FeedItem } from "@/hooks/useFeed";
+import { EmptyState } from "./EmptyState";
 
 interface MyPostsTabProps {
   /**
@@ -96,9 +96,13 @@ export const MyPostsTab = ({ username }: MyPostsTabProps) => {
 
   if (items.length === 0) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
-        No posts yet — join a group or share a win to see it here.
-      </Card>
+      <EmptyState
+        icon={MessageSquarePlus}
+        title="No posts yet"
+        description="Share your first win, join a group, or buy a ticket — your activity will show up here for your followers."
+        primary={{ label: "Open feed", to: "/feed", icon: MessageSquarePlus }}
+        secondary={{ label: "Buy a ticket", to: "/lotteries", icon: Ticket }}
+      />
     );
   }
 
