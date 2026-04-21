@@ -205,7 +205,14 @@ const SyndicateTickets = ({
   const lotteryColor = syndicate.lottery_color || "hsl(var(--primary))";
 
   // Per-user verification rows for every ticket image in this syndicate
-  const { data: verifications } = useTicketPickVerifications(syndicate.id);
+  const {
+    data: verifications,
+    error: verificationsError,
+    isFetching: verificationsFetching,
+    refetch: refetchVerifications,
+  } = useTicketPickVerifications(syndicate.id);
+  const verificationsErrorCode = (verificationsError as (Error & { code?: string }) | null)?.code;
+  const isPermissionError = verificationsErrorCode === "PERMISSION";
   const verifyMutation = useToggleTicketPickVerification();
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
