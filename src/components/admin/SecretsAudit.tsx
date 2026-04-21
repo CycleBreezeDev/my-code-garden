@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,15 +7,9 @@ import {
   KeyRound,
   RefreshCw,
   Loader2,
-  Send,
-  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 type SecretInfo = { name: string; present: boolean; length: number };
 type Group = {
