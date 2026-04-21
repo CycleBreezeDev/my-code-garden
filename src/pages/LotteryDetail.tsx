@@ -823,6 +823,167 @@ const LotteryDetail = () => {
         </div>
       </main>
       <Footer />
+
+      {/* ===================================================== */}
+      {/* Purchase confirmation                                   */}
+      {/* ===================================================== */}
+      <Dialog
+        open={!!confirmation}
+        onOpenChange={(open) => {
+          if (!open) setConfirmation(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          {confirmation && (
+            <>
+              <DialogHeader>
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <CheckCircle2 className="h-7 w-7 text-primary" />
+                </div>
+                <DialogTitle className="text-center">Ticket confirmed</DialogTitle>
+                <DialogDescription className="text-center">
+                  Your {lottery.name} ticket is locked in for the{" "}
+                  {new Date(confirmation.drawDate).toLocaleDateString(undefined, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}{" "}
+                  draw.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Numbers — repeated per line for clarity */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-3">
+                  <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <span>Your numbers</span>
+                    <span>
+                      {confirmation.lines} line{confirmation.lines === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Main
+                      </span>
+                      {confirmation.main.map((n, i) => (
+                        <span
+                          key={`cm-${i}`}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground"
+                          style={{ backgroundColor: color }}
+                        >
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                    {confirmation.bonus.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          Bonus
+                        </span>
+                        {confirmation.bonus.map((n, i) => (
+                          <span
+                            key={`cb-${i}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border-2 text-sm font-bold"
+                            style={{ borderColor: color, color }}
+                          >
+                            {n}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cost breakdown */}
+                <div className="space-y-1.5 rounded-xl border border-border p-3 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Price per line</span>
+                    <span className="tabular-nums">
+                      {formatPrice(confirmation.pricePerLine, confirmation.currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>
+                      Lines <span className="text-xs">×{confirmation.lines}</span>
+                    </span>
+                    <span className="tabular-nums">
+                      {formatPrice(
+                        +(confirmation.pricePerLine * confirmation.lines).toFixed(2),
+                        confirmation.currency
+                      )}
+                    </span>
+                  </div>
+                  {confirmation.discount > 0 && (
+                    <div className="flex justify-between text-primary">
+                      <span>Discount ({Math.round(confirmation.discount * 100)}%)</span>
+                      <span className="tabular-nums">
+                        −
+                        {formatPrice(
+                          +(
+                            confirmation.pricePerLine * confirmation.lines -
+                            confirmation.total
+                          ).toFixed(2),
+                          confirmation.currency
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  <div className="mt-1 flex items-baseline justify-between border-t border-border pt-2">
+                    <span className="text-sm font-medium text-foreground">Total paid</span>
+                    <span className="font-heading text-xl font-bold tabular-nums text-primary">
+                      {formatPrice(confirmation.total, confirmation.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reference (copy-to-clipboard) */}
+                {confirmation.ticketId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(confirmation.ticketId);
+                      toast.success("Ticket ID copied");
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    title="Copy ticket ID"
+                  >
+                    <span className="font-mono">
+                      {confirmation.ticketId.slice(0, 8)}…
+                      {confirmation.ticketId.slice(-4)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Copy className="h-3 w-3" />
+                      Copy ID
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setConfirmation(null)}
+                >
+                  Buy another
+                </Button>
+                <Button
+                  className="w-full bg-primary text-primary-foreground sm:w-auto"
+                  onClick={() => {
+                    const id = confirmation.ticketId;
+                    setConfirmation(null);
+                    navigate(`/dashboard?tab=tickets${id ? `&new=${id}` : ""}`);
+                  }}
+                >
+                  <Ticket className="mr-1.5 h-4 w-4" />
+                  View in My Tickets
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
