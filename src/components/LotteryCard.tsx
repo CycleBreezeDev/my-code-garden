@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { formatDrawDate } from "@/lib/lotteryAssets";
 
 interface LotteryCardProps {
   name: string;
@@ -14,6 +15,7 @@ interface LotteryCardProps {
   logoUrl?: string;
   nextDraw?: string;
   nextDrawDay?: string;
+  nextDrawAt?: string;
   countdownSeconds?: number;
 }
 
@@ -64,7 +66,7 @@ const CountdownTimer = ({ totalSeconds }: { totalSeconds: number }) => {
   );
 };
 
-const LotteryCard = ({ name, country, jackpot, drawDays, icon, color, slug, logoUrl, nextDraw, nextDrawDay, countdownSeconds }: LotteryCardProps) => {
+const LotteryCard = ({ name, country, jackpot, drawDays, icon, color, slug, logoUrl, nextDraw, nextDrawDay, nextDrawAt, countdownSeconds }: LotteryCardProps) => {
   const resolvedLogo = logoUrl;
   return (
     <div className="group flex flex-col items-center overflow-hidden rounded-2xl border border-border bg-card p-8 text-center transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5">
@@ -96,9 +98,17 @@ const LotteryCard = ({ name, country, jackpot, drawDays, icon, color, slug, logo
       </div>
 
       {/* Countdown timer */}
-      <div className="mb-6">
+      <div className="mb-2">
         <CountdownTimer totalSeconds={countdownSeconds || 86400} />
       </div>
+
+      {/* Absolute draw time in CAT (with viewer-local appended) */}
+      {nextDrawAt && (
+        <div className="mb-6 text-[10px] text-muted-foreground">
+          {formatDrawDate(nextDrawAt, "full")}
+        </div>
+      )}
+      {!nextDrawAt && <div className="mb-6" />}
 
       {/* Play button */}
       <Link to={`/lottery/${slug || name.toLowerCase().replace(/\s/g, '-')}`} className="w-full">
