@@ -184,25 +184,31 @@ const VerifyEmail = () => {
     );
   }
 
-  // Page guard — already signed in: nudge them to the dashboard / login instead
-  // of showing a confusing "check your email" screen.
-  if (user) {
+  // Verified — short success screen shown for ~800ms before redirect kicks in.
+  // Covers both same-tab (user truthy) and cross-tab (verifiedExternally) paths.
+  if (user || verifiedExternally) {
+    const goingTo = user ? "dashboard" : "sign in";
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">You're already signed in</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Email verified</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Looks like your account is active. Head to your dashboard to keep playing.
+            Taking you to {goingTo}…
           </p>
-          <div className="mt-6 grid gap-2">
-            <Button asChild className="w-full bg-primary text-primary-foreground">
-              <Link to="/dashboard">Go to dashboard</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full border-border">
-              <Link to="/">Back to home</Link>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Redirecting
+          </div>
+          <div className="mt-6">
+            <Button
+              asChild
+              variant="outline"
+              className="w-full border-border"
+            >
+              <Link to={user ? "/dashboard" : "/login"}>Continue now</Link>
             </Button>
           </div>
         </div>
