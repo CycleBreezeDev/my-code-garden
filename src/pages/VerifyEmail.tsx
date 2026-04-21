@@ -242,17 +242,25 @@ const VerifyEmail = () => {
             )}
             <Button
               onClick={handleResend}
-              disabled={resending}
+              disabled={resending || isCoolingDown}
               variant="outline"
               className="w-full border-border"
+              aria-live="polite"
             >
               {resending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              Resend confirmation email
+              {isCoolingDown
+                ? `Resend available in ${remainingSeconds}s`
+                : "Resend confirmation email"}
             </Button>
+            {isCoolingDown && (
+              <p className="text-center text-[11px] text-muted-foreground">
+                To protect your inbox, you can request another email every {RESEND_COOLDOWN_SECONDS} seconds.
+              </p>
+            )}
             <Button asChild className="w-full bg-primary text-primary-foreground">
               <Link to="/login">I've confirmed — sign in</Link>
             </Button>
