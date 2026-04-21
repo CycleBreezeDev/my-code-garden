@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Globe, Clock, RefreshCw, ArrowRight, TrendingUp, Ticket } from "lucide-react";
 import Sparkline from "@/components/Sparkline";
 
-// Map feed slugs to the corresponding lottery slugs used by /lottery/:slug.
-// Feeds whose slug already matches a lottery row don't need an entry — we fall back to f.slug.
-const feedSlugToLotterySlug: Record<string, string> = {
-  "powerball-us": "powerball",
-  "uk-lotto": "lotto-uk",
-  "france-loto": "loto-france",
-};
+// Feed slugs and lottery slugs are 1:1 — the `lottery_feeds` AFTER INSERT
+// trigger creates a matching `lotteries` row using the same `slug`. So the
+// detail page link is always `/lottery/<feed.slug>`.
+//
+// Historical note: an earlier version of this map remapped a few slugs
+// (e.g. `uk-lotto` → `lotto-uk`) which broke every detail page because
+// those targets don't exist in `lotteries`. Keeping the object empty (and
+// the `?? f.slug` fallback below) preserves the call site without
+// reintroducing a stale rewrite. Add an entry here ONLY if a future
+// migration deliberately renames a `lotteries.slug` away from its feed.
+const feedSlugToLotterySlug: Record<string, string> = {};
 
 type Feed = {
   id: string;
