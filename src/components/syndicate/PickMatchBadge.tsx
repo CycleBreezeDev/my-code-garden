@@ -29,7 +29,7 @@ export const PickMatchBadge = ({ mainMatches, bonusMatches, className }: Props) 
       className={cn(
         "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide",
         isBig
-          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+          ? "bg-accent/20 text-accent-foreground ring-1 ring-accent/40"
           : "bg-primary/15 text-primary",
         className,
       )}

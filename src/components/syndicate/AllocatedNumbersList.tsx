@@ -2,6 +2,7 @@ import { Copy, Sparkles, Shuffle, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberBalls } from "./NumberBalls";
+import { PickMatchBadge } from "./PickMatchBadge";
 import type { SyndicatePickRow } from "@/hooks/useSyndicatePicks";
 
 interface Props {
@@ -72,7 +73,15 @@ export const AllocatedNumbersList = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Match outcome (if the draw has been scored). */}
+              {row?.matched_at != null && (
+                <PickMatchBadge
+                  mainMatches={row.main_match_count ?? 0}
+                  bonusMatches={row.bonus_match_count ?? 0}
+                />
+              )}
+
               {isYours && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase text-primary">
                   <Sparkles className="h-3 w-3" /> Your pick
