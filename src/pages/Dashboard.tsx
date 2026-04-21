@@ -173,6 +173,8 @@ const Dashboard = () => {
           <LuckyPickMatchBanner summary={matchSummary} />
 
           <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-foreground">My Syndicates</h2>
               <Link to="/syndicates">
                 <Button variant="ghost" size="sm" className="text-primary text-xs">Browse more</Button>
               </Link>
