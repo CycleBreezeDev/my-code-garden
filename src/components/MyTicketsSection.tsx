@@ -204,6 +204,54 @@ const SyndicateTickets = ({
   );
   const lotteryColor = syndicate.lottery_color || "hsl(var(--primary))";
 
+  // Per-user verification rows for every ticket image in this syndicate
+  const { data: verifications } = useTicketPickVerifications(syndicate.id);
+  const verifyMutation = useToggleTicketPickVerification();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  // image_id -> Set<share_index>
+  const verifiedByImage = useMemo(() => {
+    const m = new Map<string, Set<number>>();
+    for (const v of verifications ?? []) {
+      const set = m.get(v.ticket_image_id) ?? new Set<number>();
+      set.add(v.share_index);
+      m.set(v.ticket_image_id, set);
+    }
+    return m;
+  }, [verifications]);
+
+  const handleToggle = (
+    ticketImageId: string,
+    shareIndex: number,
+    verified: boolean
+  ) => {
+    const key = `${ticketImageId}:${shareIndex}`;
+    setBusyKey(key);
+    verifyMutation.mutate(
+      {
+        ticketImageId,
+        syndicateId: syndicate.id,
+        membershipId: syndicate.membership_id,
+        shareIndex,
+        verified,
+      },
+      {
+        onSuccess: () => {
+          toast.success(verified ? "Marked verified" : "Verification removed");
+        },
+        onError: (e: Error) => {
+          if (/relation .* does not exist/i.test(e.message)) {
+            toast.error("Verification table not deployed yet — apply the latest migration.");
+          } else {
+            toast.error(e.message);
+          }
+        },
+        onSettled: () => setBusyKey(null),
+      }
+    );
+  };
+
+
   const deleteMutation = useMutation({
     mutationFn: async (img: TicketImage) => {
       await supabase.storage.from("ticket-images").remove([img.storage_path]);
