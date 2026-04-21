@@ -156,6 +156,111 @@ export const SyndicatesManager = () => {
     },
   });
 
+  // Importable = upcoming draws that don't yet have a syndicate.
+  const {
+    data: importable,
+    isFetching: importableLoading,
+    refetch: refetchImportable,
+  } = useQuery({
+    queryKey: ["admin-syndicate-importable"],
+    enabled: importOpen,
+    queryFn: async (): Promise<DrawOption[]> => {
+      const { data: drawRows, error: drawErr } = await supabase
+        .from("lottery_draws")
+        .select("id, draw_date, currency, lottery:lotteries!inner(name)")
+        .eq("status", "upcoming")
+        .order("draw_date", { ascending: true })
+        .limit(100);
+      if (drawErr) throw drawErr;
+      const all = (drawRows as unknown as DrawOption[]) ?? [];
+      if (all.length === 0) return [];
+      const ids = all.map((d) => d.id);
+      const { data: existing, error: synErr } = await supabase
+        .from("syndicates")
+        .select("draw_id")
+        .in("draw_id", ids);
+      if (synErr) throw synErr;
+      const taken = new Set((existing ?? []).map((r) => r.draw_id as string));
+      return all.filter((d) => !taken.has(d.id));
+    },
+  });
+
+  const openImport = async () => {
+    setImportSelected({});
+    setImportOpen(true);
+  };
+
+  const toggleAllImport = (checked: boolean) => {
+    if (!importable) return;
+    const next: Record<string, boolean> = {};
+    if (checked) for (const d of importable) next[d.id] = true;
+    setImportSelected(next);
+  };
+
+  const handleImport = async () => {
+    if (!importable) return;
+    const picks = importable.filter((d) => importSelected[d.id]);
+    if (picks.length === 0) {
+      toast.error("Select at least one draw to import");
+      return;
+    }
+    const totalShares = parseInt(importDefaults.total_shares, 10);
+    const pricePerShare = parseFloat(importDefaults.price_per_share);
+    if (!Number.isFinite(totalShares) || totalShares < 1 || totalShares > 1000) {
+      toast.error("Total shares must be 1–1000");
+      return;
+    }
+    if (!Number.isFinite(pricePerShare) || pricePerShare <= 0) {
+      toast.error("Price per share must be > 0");
+      return;
+    }
+    setImportBusy(true);
+    let created = 0;
+    let failed = 0;
+    try {
+      for (const d of picks) {
+        const dateStr = new Date(d.draw_date).toISOString().slice(0, 10);
+        const baseSlug = slugify(`${d.lottery.name}-${dateStr}`);
+        const name = `${d.lottery.name} · ${new Date(d.draw_date).toLocaleDateString()} Pool`;
+        // Ensure slug uniqueness
+        let slug = baseSlug;
+        for (let i = 1; i < 5; i++) {
+          const { data: clash } = await supabase
+            .from("syndicates")
+            .select("id")
+            .eq("slug", slug)
+            .maybeSingle();
+          if (!clash) break;
+          slug = `${baseSlug}-${i + 1}`;
+        }
+        const { error } = await supabase.from("syndicates").insert({
+          draw_id: d.id,
+          name,
+          slug,
+          description: `Auto-imported group ticket for ${d.lottery.name}.`,
+          total_shares: totalShares,
+          price_per_share: pricePerShare,
+          currency: d.currency,
+          status: "open",
+        });
+        if (error) failed += 1;
+        else created += 1;
+      }
+      if (created > 0) toast.success(`Imported ${created} syndicate${created === 1 ? "" : "s"}`);
+      if (failed > 0) toast.error(`${failed} draw${failed === 1 ? "" : "s"} failed to import`);
+      qc.invalidateQueries({ queryKey: ["admin-syndicates"] });
+      qc.invalidateQueries({ queryKey: ["admin-syndicate-importable"] });
+      qc.invalidateQueries({ queryKey: ["syndicates"] });
+      qc.invalidateQueries({ queryKey: ["admin-draws"] });
+      setImportOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
+
   const startNew = () => {
     setEditing(null);
     setForm(emptyForm);
