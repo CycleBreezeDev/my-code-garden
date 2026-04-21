@@ -400,6 +400,10 @@ const LotteryDetail = () => {
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
   const handleBuy = async () => {
+    // Re-entry guard: if a purchase is already in flight, ignore
+    // additional clicks / Enter-key repeats so we never fire
+    // wallet_buy_ticket twice for the same selection.
+    if (buying) return;
     if (!user) {
       navigate("/login");
       return;
@@ -795,10 +799,15 @@ const LotteryDetail = () => {
                 <Button
                   onClick={handleBuy}
                   disabled={buying || !picksReady || !drawAvailable}
+                  aria-busy={buying}
+                  aria-live="polite"
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing purchase…
+                    </>
                   ) : (
                     <>
                       <Ticket className="mr-1 h-4 w-4" />
