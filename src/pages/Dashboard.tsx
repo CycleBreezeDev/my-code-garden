@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,10 +55,28 @@ const formatCountdown = (s: number) => {
   return d > 0 ? `${d}d ${h}h` : `${h}h`;
 };
 
+// Valid tab values for the dashboard. Anything else falls back to "overview".
+type DashboardTab = "overview" | "tickets" | "wallet";
+const VALID_TABS: ReadonlyArray<DashboardTab> = ["overview", "tickets", "wallet"];
+
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  // Drive the active tab from `?tab=` so deep-links from the bottom nav
+  // (e.g. /dashboard?tab=tickets) land users on the focused view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: DashboardTab = (VALID_TABS as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as DashboardTab)
+    : "overview";
+  const setActiveTab = (next: DashboardTab) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
 
   const { data: memberships, isLoading } = useQuery({
     queryKey: ["my-memberships", user?.id],
@@ -132,10 +151,16 @@ const Dashboard = () => {
       <Navbar />
       <main className="pt-20">
         <div className="mx-auto max-w-7xl px-6 py-8">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="font-heading text-2xl font-bold">Welcome back, <span className="text-primary">{displayName}</span></h1>
-              <p className="text-sm text-muted-foreground mt-1">Here's your lottery activity overview.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {activeTab === "tickets"
+                  ? "Your tickets across every group and lottery."
+                  : activeTab === "wallet"
+                    ? "Manage funds, view payouts, and track transactions."
+                    : "Here's your lottery activity overview."}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground transition-colors">
@@ -150,9 +175,40 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="mb-6">
-            <WalletCard />
-          </div>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DashboardTab)} className="w-full">
+            <TabsList className="mb-6 grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+              <TabsTrigger value="overview" className="gap-1.5">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                <span>Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="tickets" className="gap-1.5">
+                <Ticket className="h-3.5 w-3.5" />
+                <span>My Tickets</span>
+              </TabsTrigger>
+              <TabsTrigger value="wallet" className="gap-1.5">
+                <Wallet className="h-3.5 w-3.5" />
+                <span>Wallet</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ============================ TICKETS TAB ============================ */}
+            <TabsContent value="tickets" className="mt-0 space-y-6">
+              <LuckyPickMatchBanner summary={matchSummary} />
+              <MyTicketsSection />
+            </TabsContent>
+
+            {/* ============================ WALLET TAB ============================ */}
+            <TabsContent value="wallet" className="mt-0 space-y-6">
+              <WalletCard />
+              <MyPayoutsSection />
+              <TransactionsList />
+            </TabsContent>
+
+            {/* ============================ OVERVIEW TAB ========================== */}
+            <TabsContent value="overview" className="mt-0">
+              <div className="mb-6">
+                <WalletCard />
+              </div>
 
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
@@ -307,17 +363,19 @@ const Dashboard = () => {
             )}
           </div>
 
-          <div className="mt-6">
-            <MyPayoutsSection />
-          </div>
+              <div className="mt-6">
+                <MyPayoutsSection />
+              </div>
 
-          <div className="mt-6">
-            <MyTicketsSection />
-          </div>
+              <div className="mt-6">
+                <MyTicketsSection />
+              </div>
 
-          <div className="mt-6">
-            <TransactionsList />
-          </div>
+              <div className="mt-6">
+                <TransactionsList />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
