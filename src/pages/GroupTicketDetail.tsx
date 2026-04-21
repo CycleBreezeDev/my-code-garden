@@ -213,6 +213,14 @@ const GroupTicketDetail = () => {
             <span className="text-foreground">{group.name}</span>
           </div>
 
+          <div className="mb-6">
+            <DrawSelector
+              lotteryId={group.draw.lottery.id}
+              lotteryName={group.draw.lottery.name}
+              currentSyndicateId={group.id}
+            />
+          </div>
+
           <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-5">
               <div
