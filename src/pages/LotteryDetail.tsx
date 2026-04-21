@@ -289,10 +289,14 @@ const LotteryDetail = () => {
   };
 
   // ----- Buy ------------------------------------------------------
-  const validation =
-    validatePick({ share_index: 0, main, bonus }, fmt) ??
-    (!upcomingDraw ? "No upcoming draw available" : null) ??
-    (drawCountdown <= 0 ? "Draw has closed" : null);
+  // The picker UI guarantees count, range, and uniqueness — only the
+  // states that the user can't fix from this page (no upcoming draw,
+  // draw already closed, or empty picks) gate the Buy button. The only
+  // *inline* error we show is insufficient wallet balance.
+  const picksReady =
+    main.length === fmt.main.count &&
+    (fmt.bonus.count === 0 || bonus.length === fmt.bonus.count);
+  const drawAvailable = !!upcomingDraw && drawCountdown > 0;
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
@@ -301,12 +305,12 @@ const LotteryDetail = () => {
       navigate("/login");
       return;
     }
-    if (validation || !upcomingDraw) {
-      toast.error(validation ?? "Pick your numbers first");
+    if (!picksReady || !upcomingDraw) {
+      // Button is disabled in this state — nothing to surface.
       return;
     }
     if (insufficientFunds) {
-      toast.error(`Top up your ${currency} wallet to buy this ticket`);
+      // Inline error already visible; also redirect to top-up.
       navigate("/wallet/add-funds");
       return;
     }
