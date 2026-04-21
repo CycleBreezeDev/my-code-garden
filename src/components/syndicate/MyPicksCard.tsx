@@ -21,8 +21,8 @@ interface Props {
   picksLockOffsetMinutes: number;
   syndicateName: string;
   lotteryColor?: string;
-  /** Called when "Verify on ticket" is clicked — typically scrolls to the ticket scans section. */
-  onVerifyOnTicket?: () => void;
+  /** Called when "Verify on ticket" is clicked — receives the share index that should be highlighted. */
+  onVerifyOnTicket?: (shareIndex: number) => void;
 }
 
 export const MyPicksCard = ({

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,23 +60,41 @@ const SignedImage = ({ path }: { path: string }) => {
 const MyNumbersOverlay = ({
   picks,
   color,
+  highlightShareIndex,
 }: {
   picks: SyndicatePickRow[];
   color: string;
+  highlightShareIndex?: number | null;
 }) => (
   <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
     <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-primary">
       My allocated lines ({picks.length})
     </div>
     <ul className="space-y-1.5">
-      {picks.map((p) => (
-        <li key={p.id} className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-muted-foreground w-12 shrink-0">
-            #{p.share_index}
-          </span>
-          <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
-        </li>
-      ))}
+      {picks.map((p) => {
+        const isMatch = highlightShareIndex === p.share_index;
+        return (
+          <li
+            key={p.id}
+            className={
+              isMatch
+                ? "flex items-center gap-2 rounded-md bg-primary/15 px-2 py-1.5 ring-2 ring-primary animate-pulse"
+                : "flex items-center gap-2"
+            }
+          >
+            <span
+              className={
+                isMatch
+                  ? "text-[10px] font-mono font-bold text-primary w-12 shrink-0"
+                  : "text-[10px] font-mono text-muted-foreground w-12 shrink-0"
+              }
+            >
+              #{p.share_index}
+            </span>
+            <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
+          </li>
+        );
+      })}
     </ul>
   </div>
 );
@@ -84,14 +102,30 @@ const MyNumbersOverlay = ({
 const SyndicateTickets = ({
   syndicate,
   defaultExpanded = false,
+  highlightShareIndex = null,
+  onHighlightConsumed,
 }: {
   syndicate: SyndicateLite;
   defaultExpanded?: boolean;
+  highlightShareIndex?: number | null;
+  onHighlightConsumed?: () => void;
 }) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [matchMode, setMatchMode] = useState(defaultExpanded);
+  const firstScanRef = useRef<HTMLDivElement | null>(null);
+
+  // When parent asks us to highlight a share, force match-mode + scroll into view.
+  useEffect(() => {
+    if (highlightShareIndex == null) return;
+    setMatchMode(true);
+    requestAnimationFrame(() => {
+      firstScanRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => onHighlightConsumed?.(), 3500);
+    return () => clearTimeout(t);
+  }, [highlightShareIndex, onHighlightConsumed]);
 
   const { data: images, isLoading } = useQuery({
     queryKey: ["ticket-images", syndicate.id],
@@ -209,12 +243,17 @@ const SyndicateTickets = ({
         </div>
       ) : images && images.length > 0 ? (
         <div className="space-y-3">
-          {images.map((img) => (
+          {images.map((img, i) => (
             <div
               key={img.id}
+              ref={i === 0 ? firstScanRef : undefined}
               className={
                 matchMode
-                  ? "grid gap-3 sm:grid-cols-[1.2fr_1fr]"
+                  ? `grid gap-3 sm:grid-cols-[1.2fr_1fr] rounded-lg p-1 transition-all ${
+                      highlightShareIndex != null && i === 0
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                        : ""
+                    }`
                   : "grid grid-cols-2 gap-3 sm:grid-cols-3"
               }
             >
@@ -231,7 +270,11 @@ const SyndicateTickets = ({
                 )}
               </div>
               {matchMode && (
-                <MyNumbersOverlay picks={myAllocated} color={lotteryColor} />
+                <MyNumbersOverlay
+                  picks={myAllocated}
+                  color={lotteryColor}
+                  highlightShareIndex={highlightShareIndex}
+                />
               )}
             </div>
           ))}
@@ -251,9 +294,18 @@ interface MyTicketsSectionProps {
   syndicateFilter?: string;
   /** Default-open match-mode for this syndicate. */
   highlightSyndicateId?: string;
+  /** When set, the matching share row is pulsed and the scan is scrolled into view. */
+  highlightShareIndex?: number | null;
+  /** Called once the highlight has been applied so parent can reset its state. */
+  onHighlightConsumed?: () => void;
 }
 
-const MyTicketsSection = ({ syndicateFilter, highlightSyndicateId }: MyTicketsSectionProps = {}) => {
+const MyTicketsSection = ({
+  syndicateFilter,
+  highlightSyndicateId,
+  highlightShareIndex = null,
+  onHighlightConsumed,
+}: MyTicketsSectionProps = {}) => {
   const { user } = useAuth();
 
   const { data: syndicates, isLoading } = useQuery({
@@ -315,13 +367,18 @@ const MyTicketsSection = ({ syndicateFilter, highlightSyndicateId }: MyTicketsSe
         </div>
       ) : syndicates && syndicates.length > 0 ? (
         <div className="space-y-4">
-          {syndicates.map((s) => (
-            <SyndicateTickets
-              key={s.id}
-              syndicate={s}
-              defaultExpanded={s.id === highlightSyndicateId}
-            />
-          ))}
+          {syndicates.map((s) => {
+            const isHighlighted = s.id === highlightSyndicateId;
+            return (
+              <SyndicateTickets
+                key={s.id}
+                syndicate={s}
+                defaultExpanded={isHighlighted}
+                highlightShareIndex={isHighlighted ? highlightShareIndex : null}
+                onHighlightConsumed={isHighlighted ? onHighlightConsumed : undefined}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="py-10 text-center">
