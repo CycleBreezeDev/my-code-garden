@@ -617,12 +617,7 @@ const LotteryDetail = () => {
 
                 <Button
                   onClick={handleBuy}
-                  disabled={
-                    buying ||
-                    !picksReady ||
-                    !drawAvailable ||
-                    (user ? insufficientFunds : false)
-                  }
+                  disabled={buying || !picksReady || !drawAvailable}
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
