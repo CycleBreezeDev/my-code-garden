@@ -33,8 +33,8 @@ type DrawRow = {
   jackpot_amount: number;
   currency: string;
   lottery: { name: string };
-  syndicates: { id: string; name: string; sold_shares: number; total_shares: number }[];
-  draw_results: { id: string }[];
+  syndicates: { id: string; name: string; sold_shares: number; total_shares: number }[] | null;
+  draw_results: { id: string }[] | null;
 };
 
 const numberArraySchema = z
@@ -123,12 +123,18 @@ export const DrawsManager = () => {
         .order("draw_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data as unknown as DrawRow[]) ?? [];
+      // PostgREST returns null (not []) for empty embedded relations — normalise here
+      // so render code can safely call .length / .map / .find on these arrays.
+      return ((data as unknown as DrawRow[]) ?? []).map((d) => ({
+        ...d,
+        syndicates: d.syndicates ?? [],
+        draw_results: d.draw_results ?? [],
+      }));
     },
   });
 
   const selectedDraw = draws?.find((d) => d.id === selectedDrawId);
-  const alreadyPublished = (selectedDraw?.draw_results.length ?? 0) > 0;
+  const alreadyPublished = (selectedDraw?.draw_results?.length ?? 0) > 0;
 
   const formatMoney = useMemo(
     () => (amount: number, currency: string) => {
@@ -176,7 +182,7 @@ export const DrawsManager = () => {
 
     const prizeErrors: Record<string, string> = {};
     const prizeRows: { syndicate_id: string; gross_prize: number }[] = [];
-    for (const s of selectedDraw.syndicates) {
+    for (const s of selectedDraw.syndicates ?? []) {
       const raw = (prizes[s.id] ?? "").trim();
       if (!raw) continue;
       const num = Number(raw);
@@ -243,7 +249,7 @@ export const DrawsManager = () => {
   };
 
   const syndicateName = (id: string) =>
-    selectedDraw?.syndicates.find((s) => s.id === id)?.name ?? id;
+    selectedDraw?.syndicates?.find((s) => s.id === id)?.name ?? id;
 
   return (
     <div className="space-y-6">
@@ -301,7 +307,8 @@ export const DrawsManager = () => {
           ) : draws && draws.length > 0 ? (
             <div className="space-y-2">
               {draws.map((d) => {
-                const published = d.draw_results.length > 0;
+                const syndicateCount = d.syndicates?.length ?? 0;
+                const published = (d.draw_results?.length ?? 0) > 0;
                 const isSelected = d.id === selectedDrawId;
                 return (
                   <button
@@ -318,7 +325,7 @@ export const DrawsManager = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-foreground">{d.lottery.name}</div>
+                      <div className="text-sm font-medium text-foreground">{d.lottery?.name ?? "Unknown lottery"}</div>
                       {published && (
                         <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
                           Published
@@ -326,8 +333,8 @@ export const DrawsManager = () => {
                       )}
                     </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      {new Date(d.draw_date).toLocaleString()} · {d.syndicates.length} syndicate
-                      {d.syndicates.length === 1 ? "" : "s"}
+                      {new Date(d.draw_date).toLocaleString()} · {syndicateCount} syndicate
+                      {syndicateCount === 1 ? "" : "s"}
                     </div>
                   </button>
                 );
