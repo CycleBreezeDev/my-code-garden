@@ -14,6 +14,8 @@ interface AuthContextValue {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  error: Error | null;
+  retry: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -24,8 +26,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
+
+  const retry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryTick((n) => n + 1);
+  };
 
   useEffect(() => {
+    let cancelled = false;
+
     // Set up listener BEFORE getSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -52,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth
       .getSession()
       .then(({ data: { session: existing } }) => {
+        if (cancelled) return;
         setSession(existing);
         setUser(existing?.user ?? null);
         if (existing?.user) {
@@ -60,8 +73,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .select("*")
             .eq("user_id", existing.user.id)
             .maybeSingle()
-            .then(({ data, error }) => {
-              if (error) {
+            .then(({ data, error: profileError }) => {
+              if (profileError) {
                 /* profile fetch failure is non-fatal */
                 return;
               }
@@ -71,8 +84,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch((err) => {
         console.error("[Auth] getSession failed", err);
+        if (cancelled) return;
+        setError(err instanceof Error ? err : new Error(String(err)));
       })
       .finally(() => {
+        if (cancelled) return;
         setLoading(false);
       });
 
@@ -80,24 +96,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // blocking the UI. Better to render an unauthenticated view than a
     // permanently blank page.
     const safetyTimeout = window.setTimeout(() => {
+      if (cancelled) return;
       setLoading((prev) => {
-        if (prev) console.warn("[Auth] loading state forced to false by safety timeout");
+        if (prev) {
+          console.warn("[Auth] loading state forced to false by safety timeout");
+          setError((prevErr) => prevErr ?? new Error("Authentication timed out. Please retry."));
+        }
         return false;
       });
     }, 5000);
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
       window.clearTimeout(safetyTimeout);
     };
-  }, []);
+  }, [retryTick]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, error, retry, signOut }}>
       {children}
     </AuthContext.Provider>
   );
