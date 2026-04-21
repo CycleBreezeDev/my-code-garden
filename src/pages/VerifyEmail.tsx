@@ -59,6 +59,24 @@ const VerifyEmail = () => {
   const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   const isCoolingDown = remainingSeconds > 0;
 
+  // When this tab completed verification, broadcast to any sibling
+  // /verify-email tabs so they can advance immediately.
+  useEffect(() => {
+    if (!user) return;
+    try {
+      localStorage.setItem(VERIFIED_FLAG_KEY, String(Date.now()));
+    } catch {
+      // ignore — storage may be blocked
+    }
+    try {
+      const bc = new BroadcastChannel(VERIFICATION_CHANNEL);
+      bc.postMessage({ type: "email-verified" });
+      bc.close();
+    } catch {
+      // ignore — BroadcastChannel unsupported
+    }
+  }, [user]);
+
   // Once we know the user has verified — either because Supabase signed them
   // in on this tab (user truthy) or because we detected verification via poll
   // / cross-tab broadcast — show the brief success state and forward.
