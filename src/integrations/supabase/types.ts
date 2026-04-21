@@ -123,6 +123,60 @@ export type Database = {
           },
         ]
       }
+      lottery_feeds: {
+        Row: {
+          country: string
+          created_at: string
+          currency: string
+          display_order: number
+          draw_schedule: string | null
+          estimated_jackpot: number | null
+          id: string
+          jackpot_display: string | null
+          last_error: string | null
+          last_refreshed_at: string | null
+          name: string
+          next_draw_at: string | null
+          slug: string
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          currency: string
+          display_order?: number
+          draw_schedule?: string | null
+          estimated_jackpot?: number | null
+          id?: string
+          jackpot_display?: string | null
+          last_error?: string | null
+          last_refreshed_at?: string | null
+          name: string
+          next_draw_at?: string | null
+          slug: string
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          currency?: string
+          display_order?: number
+          draw_schedule?: string | null
+          estimated_jackpot?: number | null
+          id?: string
+          jackpot_display?: string | null
+          last_error?: string | null
+          last_refreshed_at?: string | null
+          name?: string
+          next_draw_at?: string | null
+          slug?: string
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payouts: {
         Row: {
           created_at: string
