@@ -424,6 +424,7 @@ const LotteryDetail = () => {
     });
     handleClear();
     setLines(1);
+    if (slug) clearStoredPick(slug);
     await refreshWallet();
     queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
     navigate(`/dashboard?tab=tickets&new=${data}`);
