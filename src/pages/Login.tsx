@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, FormEvent } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
