@@ -15,15 +15,94 @@ import { toast } from "@/hooks/use-toast";
 const VerifyEmail = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const stateEmail = (location.state as { email?: string } | null)?.email ?? "";
   const [email, setEmail] = useState(stateEmail);
   const [resending, setResending] = useState(false);
 
   // If the user clicks the email link and gets auto-signed-in, send them onward.
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
-  }, [user, navigate]);
+    if (!authLoading && user) navigate("/dashboard", { replace: true });
+  }, [user, authLoading, navigate]);
+
+  // Wait for auth to resolve before deciding what to render to avoid flashing
+  // the "missing email" guard while the session is still being restored.
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Page guard — already signed in: nudge them to the dashboard / login instead
+  // of showing a confusing "check your email" screen.
+  if (user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">You're already signed in</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Looks like your account is active. Head to your dashboard to keep playing.
+          </p>
+          <div className="mt-6 grid gap-2">
+            <Button asChild className="w-full bg-primary text-primary-foreground">
+              <Link to="/dashboard">Go to dashboard</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full border-border">
+              <Link to="/">Back to home</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Page guard — landed here without a signup context (no email in state and
+  // none typed yet). Offer a clear path to /login or /register instead of an
+  // empty resend form.
+  if (!stateEmail && !email) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+        <div className="w-full max-w-md">
+          <Link
+            to="/"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to home
+          </Link>
+          <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Mail className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="font-heading text-2xl font-bold text-foreground">Nothing to verify here</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We don't have a pending sign-up on this device. If you've already confirmed your email,
+              just sign in. Otherwise, create an account to get started.
+            </p>
+            <div className="mt-6 grid gap-2">
+              <Button asChild className="w-full bg-primary text-primary-foreground">
+                <Link to="/login">Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full border-border">
+                <Link to="/register">Create an account</Link>
+              </Button>
+              <button
+                type="button"
+                onClick={() => setEmail(" ")}
+                className="mt-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Or resend confirmation to a different address
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleResend = async () => {
     if (!email) {
