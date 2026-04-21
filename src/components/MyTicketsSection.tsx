@@ -243,12 +243,17 @@ const SyndicateTickets = ({
         </div>
       ) : images && images.length > 0 ? (
         <div className="space-y-3">
-          {images.map((img) => (
+          {images.map((img, i) => (
             <div
               key={img.id}
+              ref={i === 0 ? firstScanRef : undefined}
               className={
                 matchMode
-                  ? "grid gap-3 sm:grid-cols-[1.2fr_1fr]"
+                  ? `grid gap-3 sm:grid-cols-[1.2fr_1fr] rounded-lg p-1 transition-all ${
+                      highlightShareIndex != null && i === 0
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                        : ""
+                    }`
                   : "grid grid-cols-2 gap-3 sm:grid-cols-3"
               }
             >
@@ -265,7 +270,11 @@ const SyndicateTickets = ({
                 )}
               </div>
               {matchMode && (
-                <MyNumbersOverlay picks={myAllocated} color={lotteryColor} />
+                <MyNumbersOverlay
+                  picks={myAllocated}
+                  color={lotteryColor}
+                  highlightShareIndex={highlightShareIndex}
+                />
               )}
             </div>
           ))}
@@ -285,9 +294,18 @@ interface MyTicketsSectionProps {
   syndicateFilter?: string;
   /** Default-open match-mode for this syndicate. */
   highlightSyndicateId?: string;
+  /** When set, the matching share row is pulsed and the scan is scrolled into view. */
+  highlightShareIndex?: number | null;
+  /** Called once the highlight has been applied so parent can reset its state. */
+  onHighlightConsumed?: () => void;
 }
 
-const MyTicketsSection = ({ syndicateFilter, highlightSyndicateId }: MyTicketsSectionProps = {}) => {
+const MyTicketsSection = ({
+  syndicateFilter,
+  highlightSyndicateId,
+  highlightShareIndex = null,
+  onHighlightConsumed,
+}: MyTicketsSectionProps = {}) => {
   const { user } = useAuth();
 
   const { data: syndicates, isLoading } = useQuery({
@@ -349,13 +367,18 @@ const MyTicketsSection = ({ syndicateFilter, highlightSyndicateId }: MyTicketsSe
         </div>
       ) : syndicates && syndicates.length > 0 ? (
         <div className="space-y-4">
-          {syndicates.map((s) => (
-            <SyndicateTickets
-              key={s.id}
-              syndicate={s}
-              defaultExpanded={s.id === highlightSyndicateId}
-            />
-          ))}
+          {syndicates.map((s) => {
+            const isHighlighted = s.id === highlightSyndicateId;
+            return (
+              <SyndicateTickets
+                key={s.id}
+                syndicate={s}
+                defaultExpanded={isHighlighted}
+                highlightShareIndex={isHighlighted ? highlightShareIndex : null}
+                onHighlightConsumed={isHighlighted ? onHighlightConsumed : undefined}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="py-10 text-center">
