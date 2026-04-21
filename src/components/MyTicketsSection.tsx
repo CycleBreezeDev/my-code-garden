@@ -511,44 +511,61 @@ const MyTicketsSection = ({
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Ticket className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">
-            {syndicateFilter ? "Ticket Scans" : "My Tickets"}
-          </h2>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : syndicates && syndicates.length > 0 ? (
-        <div className="space-y-4">
-          {syndicates.map((s) => {
-            const isHighlighted = s.id === highlightSyndicateId;
-            return (
-              <SyndicateTickets
-                key={s.id}
-                syndicate={s}
-                defaultExpanded={isHighlighted}
-                highlightShareIndex={isHighlighted ? highlightShareIndex : null}
-                onHighlightConsumed={isHighlighted ? onHighlightConsumed : undefined}
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <div className="py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            {syndicateFilter
-              ? "No tickets uploaded yet for this group."
-              : "Join a syndicate to upload and view scanned tickets."}
-          </p>
+    <div className="space-y-6">
+      {/* Single-ticket purchases (Lottery Detail page → wallet_buy_ticket).
+          Hidden when filtered to a single syndicate context. */}
+      {!syndicateFilter && (
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Ticket className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">My Tickets</h2>
+            </div>
+          </div>
+          <MyPurchasedTicketsList />
         </div>
       )}
+
+      {/* Syndicate ticket scans — physical photos uploaded by group members. */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Ticket className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">
+              {syndicateFilter ? "Ticket Scans" : "Group Ticket Scans"}
+            </h2>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : syndicates && syndicates.length > 0 ? (
+          <div className="space-y-4">
+            {syndicates.map((s) => {
+              const isHighlighted = s.id === highlightSyndicateId;
+              return (
+                <SyndicateTickets
+                  key={s.id}
+                  syndicate={s}
+                  defaultExpanded={isHighlighted}
+                  highlightShareIndex={isHighlighted ? highlightShareIndex : null}
+                  onHighlightConsumed={isHighlighted ? onHighlightConsumed : undefined}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              {syndicateFilter
+                ? "No tickets uploaded yet for this group."
+                : "Join a syndicate to upload and view scanned tickets."}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
