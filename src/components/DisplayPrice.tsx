@@ -2,6 +2,12 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFxRate } from "@/hooks/useFxRate";
 import { formatCurrency } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   /** Amount in the source currency. */
@@ -44,13 +50,39 @@ export const DisplayPrice = ({
   }
 
   const converted = amount * rate;
-  const tooltip = showOriginalTooltip
-    ? `${formatCurrency(amount, sourceCurrency)} · 1 ${sourceCurrency.toUpperCase()} = ${rate.toFixed(4)} ${targetCurrency}`
-    : undefined;
 
-  return (
-    <span className={cn("tabular-nums", className)} title={tooltip}>
+  // Build tooltip content
+  const tooltipContent = showOriginalTooltip ? (
+    <div className="space-y-1">
+      <p className="font-medium">Original: {formatCurrency(amount, sourceCurrency)}</p>
+      <p className="text-xs text-muted-foreground">
+        1 {sourceCurrency.toUpperCase()} = {rate.toFixed(4)} {targetCurrency}
+      </p>
+    </div>
+  ) : undefined;
+
+  const priceElement = (
+    <span className={cn("tabular-nums", className)}>
       {formatCurrency(converted, targetCurrency)}
     </span>
+  );
+
+  if (!showOriginalTooltip) {
+    return priceElement;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <span className={cn("tabular-nums cursor-help underline decoration-dotted", className)}>
+            {formatCurrency(converted, targetCurrency)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          {tooltipContent}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
