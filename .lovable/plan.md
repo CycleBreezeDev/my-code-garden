@@ -1,78 +1,61 @@
 
 
-## Pooled syndicate + optional "Lucky Pick" per share
+## Reconfigure project after GitHub import
 
-Group Tickets stay pooled (operator buys the bundle, 50/50 prize split unchanged). On top of that, every share you buy lets you **optionally** suggest one set of numbers ("Lucky Pick") that the operator will include in the bundle alongside the Quick Picks.
+You added new files via GitHub. To make the app fully functional in Lovable, three things need to happen: apply the database schema, fix a few TypeScript errors in the edge functions, and deploy the edge functions. Secrets also need to be confirmed.
 
-### What members see
+### 1. Apply database migrations
 
-**On the join screen (`/group/:slug`)**
-- A new "How numbers work" explainer panel above the share picker:
-  - "Group Tickets are pooled — we buy a bundle of official tickets for the whole group."
-  - "Most lines are Quick Picks. You can optionally pick your own numbers for each share you buy (1 line per share)."
-  - "Whichever ticket wins, prizes split 50/50 (ticket buyer / group)."
-- After choosing 1×/2×/5× shares, a collapsible **"Add my Lucky Picks (optional)"** section appears with N number-picker rows — one per share.
-- Each row shows the lottery's main-ball range + bonus-ball range (read from a new `lotteries.number_format` JSON: `{main:{count,min,max}, bonus:{count,min,max}}`). Includes a "Quick Pick for me" button that randomizes that row.
-- Picks are saved when you confirm payment. Skipping is fine — those shares just default to operator Quick Picks.
+There are 27 SQL migration files in `supabase/migrations/` that have not been applied to your Lovable Cloud database. These create:
 
-**After joining (Dashboard → My Groups + on the group's "About" tab)**
-- A "My Lucky Picks" card listing the lines you submitted, with edit/randomize buttons.
-- Editing is locked once `picks_locked_at` passes (default: 2 hours before draw; admin-configurable per syndicate).
-- A "Group line-up" tab shows total lines purchased, how many are member-suggested vs Quick Pick, and (after tickets are uploaded) which scanned ticket each suggestion maps to.
+- Core app tables (lotteries, tickets, payouts, syndicates, KYC, wallet, transactions, FX pairs, withdrawal configs, social/feed/messaging, notifications, contact submissions, etc.)
+- The email infrastructure: `email_send_log`, `email_send_state`, `suppressed_emails`, unsubscribe tables, PGMQ queues (`auth_emails`, `transactional_emails`, plus DLQs), and RPCs (`read_email_batch`, `delete_email`, `move_to_dlq`)
+- Required extensions: `pg_net`, `pg_cron`, `supabase_vault`, `pgmq`
+- RLS policies, the `user_roles` table + `has_role()` security-definer function, and a security-definer `is_admin()` helper
+- Storage buckets for KYC, lottery branding, etc.
 
-**Activity / notifications**
-- System feed event: "Alice locked in 2 Lucky Picks for Mega Millions Group #4."
-- Notification at lock time: "Your Lucky Picks are locked for tonight's draw."
-- After results: "Your Lucky Pick matched 3 numbers" (if any).
+I'll run all migrations in order, then regenerate `src/integrations/supabase/types.ts` so the generated types include the new tables and RPCs.
 
-### What admins see
+### 2. Fix edge function TypeScript errors
 
-- Admin panel → Syndicates gets a **"Picks"** view per syndicate:
-  - Table of all member-submitted lines (user, share #, numbers, bonus, status: pending / included / quick-picked).
-  - "Export CSV for retailer" button (one row per line, ready to hand to whoever buys the physical tickets).
-  - "Mark included" / "Mark quick-picked" buttons (so the audit trail is clear if a retailer can't take a custom line).
-- New `lotteries.number_format` editor in the Lottery Branding admin tab.
-- Per-syndicate `picks_lock_offset_minutes` field (default 120).
+After regenerating types, most errors in `process-email-queue/index.ts` will resolve automatically (they exist because the current `types.ts` has none of the new tables). Two small code-level fixes also needed:
 
-### Technical plan
+- **`supabase/functions/bank-list/index.ts` (line 42)** — change `String(e?.message || e)` to a properly narrowed `error instanceof Error ? error.message : String(error)` pattern.
+- **`supabase/functions/process-email-queue/index.ts`** — type the `moveToDlq` helper's `supabase` parameter as `SupabaseClient` (imported from `@supabase/supabase-js`) instead of `ReturnType<typeof createClient>`, and add explicit `any` types for the `messages.map((msg) => …)` and `.filter((id) => …)` callbacks.
 
-**Schema (one migration)**
-- `lotteries.number_format jsonb` — e.g. `{"main":{"count":5,"min":1,"max":70},"bonus":{"count":1,"min":1,"max":25}}`. Backfill defaults for existing lotteries from a static map.
-- `syndicates.picks_lock_offset_minutes int default 120`.
-- New table `syndicate_picks`:
-  - `id`, `syndicate_id`, `membership_id`, `user_id`, `share_index` (1..shares for that membership), `main_numbers int[]`, `bonus_numbers int[]`, `status text` (`pending` / `included` / `quick_picked`), `created_at`, `updated_at`.
-  - Unique `(membership_id, share_index)`.
-- Validation trigger checks count/min/max against `lotteries.number_format` and that `now() < draw_date - lock_offset` on insert/update.
-- RLS: members read/write their own picks; admins read all and update `status`.
-- Helper view `syndicate_picks_summary` for the admin "Picks" tab (counts of pending/included per syndicate).
+I'll also re-check the other functions listed in the build output (`payout-webhook-flutterwave`, `payout-webhook-paystack`, `paystack-webhook`, `handle-email-suppression`, `handle-email-unsubscribe`) for the same patterns and fix any similar narrow issues.
 
-**RPC**
-- `upsert_syndicate_picks(_membership_id uuid, _picks jsonb[])` — replaces a member's picks atomically; honors the lock window.
-- `quick_pick_for_lottery(_lottery_id uuid)` — server-side randomizer used as a fallback (so the client and server agree on ranges).
+### 3. Deploy edge functions
 
-**Frontend**
-- New `src/components/syndicate/LuckyPicksEditor.tsx` (number grid, bonus row, "QP" per row, validation toasts).
-- New `src/components/syndicate/MyPicksCard.tsx` (Dashboard + group page).
-- `GroupTicketDetail.tsx`: add the "How numbers work" panel + collapsible picker; pass picks to `SyndicatePayConfirm`.
-- `SyndicatePayConfirm.tsx`: after the existing `wallet_join_syndicate` / `wallet_join_syndicate_fx` succeeds, call `upsert_syndicate_picks` with the captured picks. (Card flow does the same on `paystack-verify` success.)
-- `paystack-verify` edge function: accept an optional `picks` payload from the callback URL state and upsert after membership is created.
-- `src/components/admin/SyndicatePicksManager.tsx` + new tab in `Admin.tsx`.
-- `src/components/admin/LotteryBrandingManager.tsx`: add `number_format` editor.
-- New hook `useSyndicatePicks(syndicateId)` for read/edit/lock-state.
+Once types and code compile, deploy all 21 edge functions so they're live on your Supabase project. `supabase/config.toml` already declares the correct `verify_jwt` settings per function, so no config changes needed.
 
-**Copy added to FAQ on the group page**
-- "Do I pick my own numbers?" → "It's optional. Each share gives you one Lucky Pick line we'll add to the group's ticket bundle. Skip it and we use a Quick Pick. Either way, prizes are split 50/50."
-- "What's the deadline?" → Pulls dynamically from `picks_lock_offset_minutes`.
+### 4. Confirm required secrets
 
-### Out of scope (ask separately)
-- Members editing each other's picks or voting on shared lines.
-- Auto-matching individual scanned tickets to picks (beyond the manual admin "Mark included" action).
-- Multi-line per share (each share = exactly 1 line).
+The following secrets must exist in Lovable Cloud → Secrets for the functions to work at runtime. I'll list what's set and flag anything missing — you'll need to add the missing ones manually:
 
-### Phasing if you'd rather slice it
-1. Schema + member picker + lock window + admin export CSV (ship-ready MVP).
-2. Admin "Mark included / quick-picked" + per-pick result matching after results publish.
-3. Notifications + feed events + match-count summaries.
+- `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`
+- `FLUTTERWAVE_SECRET_KEY`
+- `LOVABLE_API_KEY` (for email sending + suppression webhook HMAC)
+- Any provider webhook secrets used by `paystack-webhook`, `payout-webhook-paystack`, `payout-webhook-flutterwave`
 
-Reply **"Build all of it"**, **"Phase 1 only"**, or list parts you want.
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` are auto-injected by Lovable Cloud — no action needed.
+
+### What I will NOT change
+
+- No new features, no UI changes, no business logic changes.
+- I won't touch `supabase/config.toml` (already correct).
+- I won't modify migration files (they're treated as immutable history once applied).
+
+### Order of operations
+
+```text
+1. Apply migrations 1 → 27 (in filename order)
+2. Regenerate src/integrations/supabase/types.ts
+3. Patch bank-list/index.ts and process-email-queue/index.ts
+4. Re-check + patch other listed edge functions
+5. Deploy all edge functions
+6. Report secret status
+```
+
+Approve this and I'll switch to default mode and execute it end-to-end.
 
