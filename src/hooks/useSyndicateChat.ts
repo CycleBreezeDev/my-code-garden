@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { onUsernameChange } from "@/lib/profileEvents";
 
 export interface ChatMessage {
   id: string;
@@ -85,8 +86,11 @@ export const useSyndicateChat = (syndicateId: string | undefined) => {
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => fetchAll())
       .subscribe();
+    // Re-enrich messages when any chat participant renames.
+    const unsub = onUsernameChange(() => fetchAll());
     return () => {
       supabase.removeChannel(ch);
+      unsub();
     };
   }, [syndicateId, fetchAll]);
 

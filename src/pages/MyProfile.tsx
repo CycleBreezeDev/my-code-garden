@@ -18,9 +18,10 @@ import { MyPostsTab } from "@/components/profile/MyPostsTab";
 import MyTicketsSection from "@/components/MyTicketsSection";
 import { FollowButton } from "@/components/social/FollowButton";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice, secondsUntil } from "@/lib/lotteryAssets";
 import { Clock } from "lucide-react";
+import { emitUsernameChange } from "@/lib/profileEvents";
 
 const VALID_TABS = ["posts", "tickets", "groups", "followers", "following", "settings"] as const;
 type ProfileTab = (typeof VALID_TABS)[number];
@@ -187,6 +188,7 @@ const GroupsTab = ({ userId }: { userId: string }) => {
 const MyProfile = () => {
   const { user, refreshProfile } = useAuth();
   const { data, loading, refresh, updatePrivate } = useMyProfile();
+  const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -226,8 +228,26 @@ const MyProfile = () => {
   };
 
   const onEditSaved = async (next: Partial<MyProfileData>) => {
+    // 1) Re-pull our own combined record so the header / settings forms
+    //    show the new handle without waiting on the next mount.
     await refresh();
+    // 2) Reload the navbar profile (avatar/name) too — cheap, keeps the
+    //    UserMenu in sync if the display name moved.
     await refreshProfile?.();
+    // 3) Invalidate any cached query that includes the user's identity so
+    //    /dashboard, /feed, /messages re-render with the new @handle next
+    //    time the user navigates to them.
+    if (user?.id && next.username) {
+      queryClient.invalidateQueries({ queryKey: ["my-profile-groups", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-memberships", user.id] });
+      // Broad invalidation — every feed/social hook keys off `user.id`.
+      queryClient.invalidateQueries({ predicate: (q) =>
+        Array.isArray(q.queryKey) && q.queryKey.includes(user.id),
+      });
+      // 4) Ping the rest of the app (chat, member lists, DM threads) so
+      //    they refetch their cached usernames.
+      emitUsernameChange({ userId: user.id, username: next.username });
+    }
   };
 
   return (
@@ -266,7 +286,7 @@ const MyProfile = () => {
             </TabsList>
 
             <TabsContent value="posts" className="mt-6">
-              <MyPostsTab />
+              <MyPostsTab username={data.username} />
             </TabsContent>
             <TabsContent value="tickets" className="mt-6">
               <MyTicketsSection />
