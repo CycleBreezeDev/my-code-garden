@@ -41,8 +41,9 @@ export const useMyProfile = () => {
     }
     setLoading(true);
     const [{ data: priv }, { data: pub }] = await Promise.all([
-      supabase
-        .from("profiles")
+      // Cast: `cover_url` is added in the my_profile migration but the generated
+      // types may lag a deploy behind. Safe because RLS still enforces ownership.
+      (supabase.from("profiles") as any)
         .select("full_name, avatar_url, cover_url, created_at")
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -52,11 +53,12 @@ export const useMyProfile = () => {
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
+    const privAny = priv as any;
     setData({
       user_id: user.id,
-      full_name: (priv as any)?.full_name ?? null,
-      avatar_url: (priv as any)?.avatar_url ?? null,
-      cover_url: (priv as any)?.cover_url ?? null,
+      full_name: privAny?.full_name ?? null,
+      avatar_url: privAny?.avatar_url ?? null,
+      cover_url: privAny?.cover_url ?? null,
       created_at: (priv as any)?.created_at ?? null,
       username: (pub as any)?.username ?? "",
       bio: (pub as any)?.bio ?? null,
@@ -79,8 +81,9 @@ export const useMyProfile = () => {
     patch: Partial<Pick<MyProfileData, "full_name" | "avatar_url" | "cover_url">>,
   ) => {
     if (!user) return { error: new Error("Not signed in") };
-    const { error } = await supabase
-      .from("profiles")
+    // Cast: `cover_url` is added in the my_profile migration but the generated
+    // types may lag a deploy behind. Safe because RLS still enforces ownership.
+    const { error } = await (supabase.from("profiles") as any)
       .update(patch)
       .eq("user_id", user.id);
     if (!error) {
