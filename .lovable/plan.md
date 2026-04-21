@@ -1,61 +1,82 @@
 
 
-## Reconfigure project after GitHub import
+## Goal
 
-You added new files via GitHub. To make the app fully functional in Lovable, three things need to happen: apply the database schema, fix a few TypeScript errors in the edge functions, and deploy the edge functions. Secrets also need to be confirmed.
+Give every group-ticket member full visibility into the lottery numbers allocated to their shares — whether they self-picked or got operator-assigned Quick Picks — and let them manually verify those numbers against the official scanned ticket bundle.
 
-### 1. Apply database migrations
+## What the user will see
 
-There are 27 SQL migration files in `supabase/migrations/` that have not been applied to your Lovable Cloud database. These create:
+### 1. Upgraded "My Lucky Picks" card → "My Allocated Numbers"
 
-- Core app tables (lotteries, tickets, payouts, syndicates, KYC, wallet, transactions, FX pairs, withdrawal configs, social/feed/messaging, notifications, contact submissions, etc.)
-- The email infrastructure: `email_send_log`, `email_send_state`, `suppressed_emails`, unsubscribe tables, PGMQ queues (`auth_emails`, `transactional_emails`, plus DLQs), and RPCs (`read_email_batch`, `delete_email`, `move_to_dlq`)
-- Required extensions: `pg_net`, `pg_cron`, `supabase_vault`, `pgmq`
-- RLS policies, the `user_roles` table + `has_role()` security-definer function, and a security-definer `is_admin()` helper
-- Storage buckets for KYC, lottery branding, etc.
+On `/group/:slug` (and `/dashboard`), the existing `MyPicksCard` becomes a two-mode card:
 
-I'll run all migrations in order, then regenerate `src/integrations/supabase/types.ts` so the generated types include the new tables and RPCs.
+- **Before lock** (current behavior, kept): editor for picking numbers per share, "Quick Pick" / "Clear" buttons, save.
+- **After lock** (new): read-only "Allocated Numbers" view showing one row per share with:
+  - Share number (Share 1, Share 2, …)
+  - The actual numbers as colored balls (main + bonus, matching lottery branding)
+  - Source badge: **"Your pick"** (green) or **"Quick Pick"** (muted) — driven by the existing `status` field (`included` vs `quick_picked`)
+  - A small **"Verify on ticket"** link that scrolls to / opens the matching official scan in the Ticket Images section
+  - A "Copy numbers" button (copies "07-12-19-25-33-41 + 04" style text)
 
-### 2. Fix edge function TypeScript errors
+### 2. New "Allocated to me" summary strip
 
-After regenerating types, most errors in `process-email-queue/index.ts` will resolve automatically (they exist because the current `types.ts` has none of the new tables). Two small code-level fixes also needed:
+Above the per-share list:
+- Total lines allocated, how many self-picked vs Quick Pick
+- "Verified ✓" indicator once at least one ticket image has been uploaded for the draw
+- Lock countdown / "Picks locked" pill (already exists, kept)
 
-- **`supabase/functions/bank-list/index.ts` (line 42)** — change `String(e?.message || e)` to a properly narrowed `error instanceof Error ? error.message : String(error)` pattern.
-- **`supabase/functions/process-email-queue/index.ts`** — type the `moveToDlq` helper's `supabase` parameter as `SupabaseClient` (imported from `@supabase/supabase-js`) instead of `ReturnType<typeof createClient>`, and add explicit `any` types for the `messages.map((msg) => …)` and `.filter((id) => …)` callbacks.
+### 3. Manual verification flow
 
-I'll also re-check the other functions listed in the build output (`payout-webhook-flutterwave`, `payout-webhook-paystack`, `paystack-webhook`, `handle-email-suppression`, `handle-email-unsubscribe`) for the same patterns and fix any similar narrow issues.
+In the existing **Ticket Images** section (already member-visible via `ticket_images` table) we add a **"Match my numbers"** toggle. When on, each uploaded ticket scan is rendered with the user's allocated numbers listed beside it so they can eyeball-compare line by line against the printed ticket.
 
-### 3. Deploy edge functions
+### 4. Dashboard surface
 
-Once types and code compile, deploy all 21 edge functions so they're live on your Supabase project. `supabase/config.toml` already declares the correct `verify_jwt` settings per function, so no config changes needed.
+On `/dashboard` → "My Syndicates" each membership row gets a new collapsible **"My numbers (N lines)"** showing the same allocated-numbers list inline, so users don't have to open the group page to verify.
 
-### 4. Confirm required secrets
+## How it works (technical)
 
-The following secrets must exist in Lovable Cloud → Secrets for the functions to work at runtime. I'll list what's set and flag anything missing — you'll need to add the missing ones manually:
+### Data — already in place, no schema change needed
 
-- `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`
-- `FLUTTERWAVE_SECRET_KEY`
-- `LOVABLE_API_KEY` (for email sending + suppression webhook HMAC)
-- Any provider webhook secrets used by `paystack-webhook`, `payout-webhook-paystack`, `payout-webhook-flutterwave`
+- `syndicate_picks` already stores `main_numbers`, `bonus_numbers`, `status` per share, RLS scoped to owner.
+- `ticket_images` already stores official scans, RLS scoped to members.
+- `lotteries.number_format` already drives ball colors and ranges.
 
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` are auto-injected by Lovable Cloud — no action needed.
+### Backfill operator Quick Picks (one migration)
 
-### What I will NOT change
+When picks lock and the operator buys the bundle, every share that has no row (or an empty row) needs a deterministic Quick Pick stored so the user can see it. Add:
 
-- No new features, no UI changes, no business logic changes.
-- I won't touch `supabase/config.toml` (already correct).
-- I won't modify migration files (they're treated as immutable history once applied).
+- A migration adding `public.finalize_syndicate_picks(_syndicate_id uuid)` (admin / service-role only) that:
+  - Iterates every membership × share_index for the syndicate
+  - For any missing share, inserts a row using the existing `quick_pick_for_lottery()` function with `status = 'quick_picked'`
+  - For existing user picks, flips `status` from `pending` → `included`
+- Wire the existing admin "lock & buy" action (or a new admin button on the Syndicate admin panel) to call this RPC. If no admin trigger currently exists, add a small admin button "Finalize picks & assign Quick Picks" on `LotteryBrandingManager` / a new minimal admin card.
 
-### Order of operations
+### New components
 
 ```text
-1. Apply migrations 1 → 27 (in filename order)
-2. Regenerate src/integrations/supabase/types.ts
-3. Patch bank-list/index.ts and process-email-queue/index.ts
-4. Re-check + patch other listed edge functions
-5. Deploy all edge functions
-6. Report secret status
+src/components/syndicate/
+  MyPicksCard.tsx          (extended: editor when unlocked, read-only allocation view when locked)
+  AllocatedNumbersList.tsx (new: ball rendering, source badge, copy button)
+  NumberBalls.tsx          (new: reusable colored ball row)
 ```
 
-Approve this and I'll switch to default mode and execute it end-to-end.
+### Hook changes
+
+`useMyPicks` already returns rows with `status` + numbers — no change needed. Add a tiny `useSyndicateTicketImages(syndicateId)` already used by `MyTicketsSection`; reused on the group page.
+
+### Files to edit
+
+- `src/components/syndicate/MyPicksCard.tsx` — split into pre-lock editor and post-lock allocation view
+- `src/components/syndicate/AllocatedNumbersList.tsx` — new
+- `src/components/syndicate/NumberBalls.tsx` — new (small reusable ball renderer)
+- `src/pages/Dashboard.tsx` — add inline "My numbers" expander per membership
+- `src/components/MyTicketsSection.tsx` — add "Match my numbers" toggle that overlays the user's allocated lines next to each scan
+- `supabase/migrations/<new>.sql` — `finalize_syndicate_picks(uuid)` RPC + grant to admin role
+- `src/components/admin/SyndicatePicksManager.tsx` — add "Finalize picks" button calling the RPC (only if not already present)
+
+## Out of scope
+
+- Changing the 50/50 prize split logic
+- Changing how the operator actually buys tickets at the lottery operator
+- Auto-OCR of ticket scans (manual verification only, per request)
 
