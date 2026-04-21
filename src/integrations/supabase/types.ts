@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       draw_results: {
         Row: {
           bonus_numbers: number[] | null
@@ -54,32 +90,44 @@ export type Database = {
       }
       lotteries: {
         Row: {
+          color: string | null
           country: string | null
           created_at: string
           description: string | null
+          draw_days: string | null
+          icon: string | null
           id: string
           is_active: boolean
           logo_key: string | null
+          logo_url: string | null
           name: string
           slug: string
         }
         Insert: {
+          color?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
+          draw_days?: string | null
+          icon?: string | null
           id?: string
           is_active?: boolean
           logo_key?: string | null
+          logo_url?: string | null
           name: string
           slug: string
         }
         Update: {
+          color?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
+          draw_days?: string | null
+          icon?: string | null
           id?: string
           is_active?: boolean
           logo_key?: string | null
+          logo_url?: string | null
           name?: string
           slug?: string
         }
@@ -176,6 +224,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lottery_jackpot_history: {
+        Row: {
+          amount: number
+          captured_at: string
+          currency: string
+          feed_id: string
+          id: string
+          jackpot_display: string | null
+          slug: string
+        }
+        Insert: {
+          amount: number
+          captured_at?: string
+          currency: string
+          feed_id: string
+          id?: string
+          jackpot_display?: string | null
+          slug: string
+        }
+        Update: {
+          amount?: number
+          captured_at?: string
+          currency?: string
+          feed_id?: string
+          id?: string
+          jackpot_display?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lottery_jackpot_history_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "lottery_feeds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payouts: {
         Row: {
