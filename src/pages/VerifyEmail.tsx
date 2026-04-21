@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
  * one-click "Resend confirmation" action.
  */
 const RESEND_COOLDOWN_SECONDS = 60;
+const VERIFICATION_POLL_MS = 4000;
+const VERIFICATION_CHANNEL = "epiclotto-auth";
+const VERIFIED_FLAG_KEY = "verify-email:verified-at";
 const cooldownKey = (e: string) => `verify-email:resend-until:${e.trim().toLowerCase()}`;
 
 const VerifyEmail = () => {
