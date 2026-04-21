@@ -162,9 +162,12 @@ const SyndicatePicksManager = () => {
                         "Finalize picks?\n\nThis will:\n• Promote all submitted user picks to 'included'\n• Backfill Quick Picks for any share without a pick\n\nRun this once the bundle is locked."
                       );
                       if (!ok) return;
-                      const { data, error } = await supabase.rpc("finalize_syndicate_picks", {
-                        _syndicate_id: selected,
-                      });
+                      const { data, error } = await (
+                        supabase.rpc as unknown as (
+                          fn: string,
+                          args: Record<string, unknown>
+                        ) => Promise<{ data: unknown; error: { message: string } | null }>
+                      )("finalize_syndicate_picks", { _syndicate_id: selected });
                       if (error) {
                         toast.error(error.message);
                         return;
