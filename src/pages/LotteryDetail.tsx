@@ -32,7 +32,6 @@ import {
 import {
   parseFormat,
   quickPick,
-  validatePick,
   type NumberFormat,
 } from "@/lib/numberFormat";
 
@@ -289,10 +288,14 @@ const LotteryDetail = () => {
   };
 
   // ----- Buy ------------------------------------------------------
-  const validation =
-    validatePick({ share_index: 0, main, bonus }, fmt) ??
-    (!upcomingDraw ? "No upcoming draw available" : null) ??
-    (drawCountdown <= 0 ? "Draw has closed" : null);
+  // The picker UI guarantees count, range, and uniqueness — only the
+  // states that the user can't fix from this page (no upcoming draw,
+  // draw already closed, or empty picks) gate the Buy button. The only
+  // *inline* error we show is insufficient wallet balance.
+  const picksReady =
+    main.length === fmt.main.count &&
+    (fmt.bonus.count === 0 || bonus.length === fmt.bonus.count);
+  const drawAvailable = !!upcomingDraw && drawCountdown > 0;
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
@@ -301,12 +304,12 @@ const LotteryDetail = () => {
       navigate("/login");
       return;
     }
-    if (validation || !upcomingDraw) {
-      toast.error(validation ?? "Pick your numbers first");
+    if (!picksReady || !upcomingDraw) {
+      // Button is disabled in this state — nothing to surface.
       return;
     }
     if (insufficientFunds) {
-      toast.error(`Top up your ${currency} wallet to buy this ticket`);
+      // Inline error already visible; also redirect to top-up.
       navigate("/wallet/add-funds");
       return;
     }
@@ -613,7 +616,7 @@ const LotteryDetail = () => {
 
                 <Button
                   onClick={handleBuy}
-                  disabled={buying || !!validation || (user ? insufficientFunds : false)}
+                  disabled={buying || !picksReady || !drawAvailable}
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
@@ -626,8 +629,12 @@ const LotteryDetail = () => {
                   )}
                 </Button>
 
-                {validation && main.length + bonus.length > 0 && (
-                  <p className="mb-2 text-center text-xs text-muted-foreground">{validation}</p>
+                {/* Only inline error: insufficient balance (the picker
+                    prevents wrong counts/ranges/duplicates by design). */}
+                {user && wallet && insufficientFunds && picksReady && drawAvailable && (
+                  <p className="mb-2 text-center text-xs font-medium text-destructive">
+                    Not enough {currency} to cover {formatPrice(total, currency)}. Tap Buy to top up.
+                  </p>
                 )}
 
                 <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
