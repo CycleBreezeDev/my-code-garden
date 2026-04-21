@@ -45,21 +45,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session: existing } }) => {
-      setSession(existing);
-      setUser(existing?.user ?? null);
-      if (existing?.user) {
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", existing.user.id)
-          .maybeSingle()
-          .then(({ data }) => setProfile(data as Profile | null));
-      }
-      setLoading(false);
-    });
+    // Always release `loading` even if getSession() rejects (e.g. transient
+    // network failure on the published site). Without a .catch, a rejected
+    // promise leaves loading=true forever and ProtectedRoute renders a
+    // blank "Loading…" screen indefinitely.
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: existing } }) => {
+        setSession(existing);
+        setUser(existing?.user ?? null);
+        if (existing?.user) {
+          supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", existing.user.id)
+            .maybeSingle()
+            .then(({ data, error }) => {
+              if (error) {
+                /* profile fetch failure is non-fatal */
+                return;
+              }
+              setProfile(data as Profile | null);
+            });
+        }
+      })
+      .catch((err) => {
+        console.error("[Auth] getSession failed", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+    // Safety net: if for any reason neither path resolves within 5s, stop
+    // blocking the UI. Better to render an unauthenticated view than a
+    // permanently blank page.
+    const safetyTimeout = window.setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) console.warn("[Auth] loading state forced to false by safety timeout");
+        return false;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      window.clearTimeout(safetyTimeout);
+    };
   }, []);
 
   const signOut = async () => {
