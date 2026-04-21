@@ -1,7 +1,20 @@
 import { Home, Ticket, Trophy, Rss, HelpCircle } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+
+/**
+ * Smoothly scroll an element with the given id into view, accounting for
+ * the fixed top navbar (~5rem). Returns true if the element was found.
+ */
+const smoothScrollToId = (id: string): boolean => {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  const top = el.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top, behavior: "smooth" });
+  return true;
+};
 
 interface Item {
   label: string;
