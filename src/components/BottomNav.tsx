@@ -1,5 +1,5 @@
 import { Home, Ticket, Trophy, Rss, HelpCircle } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,25 +7,76 @@ interface Item {
   label: string;
   to: string;
   icon: typeof Home;
-  /** When true, only matches the exact path (so "/" doesn't stay active everywhere). */
-  end?: boolean;
+  /**
+   * Pathname prefixes that should highlight this item. The item is
+   * considered active when the current pathname matches `to` exactly
+   * OR starts with any of `matchPrefixes` followed by "/" (so "/feed"
+   * matches "/feed/123" but not "/feedback").
+   */
+  matchPrefixes?: string[];
+  /** Treat this item as never-active (used for hash links like FAQ). */
+  alwaysInactive?: boolean;
 }
 
 /**
+ * Returns true when the bottom-nav item should be visually active for
+ * the current pathname. We deliberately ignore the auth-redirected `to`
+ * (e.g. `/login`) when checking — "My Tickets" should still highlight
+ * on `/dashboard` even if a logged-out user's link points to `/login`.
+ */
+const isItemActive = (pathname: string, item: Item): boolean => {
+  if (item.alwaysInactive) return false;
+  for (const prefix of item.matchPrefixes ?? [item.to]) {
+    if (prefix === "/") {
+      if (pathname === "/") return true;
+      continue;
+    }
+    if (pathname === prefix || pathname.startsWith(prefix + "/")) return true;
+  }
+  return false;
+};
+
+/**
  * Mobile-only bottom navigation. Hidden on `md+` where the top Navbar
- * already provides full navigation. Routes that require auth (`/dashboard`,
- * `/feed`) gracefully redirect to `/login` via <ProtectedRoute />.
+ * already provides full navigation.
  */
 export const BottomNav = () => {
   const { user } = useAuth();
   const location = useLocation();
 
   const items: Item[] = [
-    { label: "Home", to: "/", icon: Home, end: true },
-    { label: "My Tickets", to: user ? "/dashboard" : "/login", icon: Ticket },
-    { label: "Results", to: "/results", icon: Trophy },
-    { label: "Feed", to: user ? "/feed" : "/login", icon: Rss },
-    { label: "FAQ", to: "/#how-it-works", icon: HelpCircle },
+    {
+      label: "Home",
+      to: "/",
+      icon: Home,
+      matchPrefixes: ["/"],
+    },
+    {
+      label: "My Tickets",
+      to: user ? "/dashboard" : "/login",
+      icon: Ticket,
+      // Highlight across the whole dashboard/wallet area, regardless of
+      // whether the user is signed in (link target may differ).
+      matchPrefixes: ["/dashboard", "/wallet", "/kyc"],
+    },
+    {
+      label: "Results",
+      to: "/results",
+      icon: Trophy,
+      matchPrefixes: ["/results", "/lottery", "/lotteries"],
+    },
+    {
+      label: "Feed",
+      to: user ? "/feed" : "/login",
+      icon: Rss,
+      matchPrefixes: ["/feed", "/notifications", "/messages", "/u"],
+    },
+    {
+      label: "FAQ",
+      to: "/#how-it-works",
+      icon: HelpCircle,
+      alwaysInactive: true,
+    },
   ];
 
   // Don't render on auth screens — they have their own focused layout.
@@ -38,36 +89,26 @@ export const BottomNav = () => {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
     >
       <ul className="flex items-stretch justify-around">
-        {items.map(({ label, to, icon: Icon, end }) => {
-          // Special-case the FAQ hash link — NavLink doesn't activate on
-          // hashes, so we treat it as never-active.
-          const isHash = to.includes("#");
+        {items.map((item) => {
+          const active = isItemActive(location.pathname, item);
+          const Icon = item.icon;
           return (
-            <li key={label} className="flex-1">
-              <NavLink
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  cn(
-                    "flex h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
-                    isActive && !isHash
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground",
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 transition-transform",
-                        isActive && !isHash && "scale-110",
-                      )}
-                    />
-                    <span className="leading-none">{label}</span>
-                  </>
+            <li key={item.label} className="flex-1">
+              <Link
+                to={item.to}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
-              </NavLink>
+              >
+                <Icon
+                  className={cn("h-5 w-5 transition-transform", active && "scale-110")}
+                />
+                <span className="leading-none">{item.label}</span>
+              </Link>
             </li>
           );
         })}
@@ -75,3 +116,6 @@ export const BottomNav = () => {
     </nav>
   );
 };
+
+// Exported for unit tests.
+export const __test__ = { isItemActive };
