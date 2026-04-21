@@ -22,7 +22,7 @@ type ResultRow = {
 };
 
 const Results = () => {
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["results"],
     queryFn: async (): Promise<ResultRow[]> => {
       const { data, error } = await supabase
