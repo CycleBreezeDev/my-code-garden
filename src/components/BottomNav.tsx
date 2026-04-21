@@ -53,7 +53,7 @@ export const BottomNav = () => {
     },
     {
       label: "My Tickets",
-      to: user ? "/dashboard" : "/login",
+      to: user ? "/dashboard?tab=tickets" : "/login",
       icon: Ticket,
       // Highlight across the whole dashboard/wallet area, regardless of
       // whether the user is signed in (link target may differ).
