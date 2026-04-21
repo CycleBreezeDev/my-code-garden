@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ArrowRight, Star, Shield, Eye, Ticket, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
-import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName } from "@/lib/lotteryAssets";
+import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName, formatDrawDate } from "@/lib/lotteryAssets";
 import { DisplayPrice } from "@/components/DisplayPrice";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
@@ -199,8 +199,11 @@ const Syndicates = () => {
                       <div className="mb-2 text-xs text-muted-foreground">
                         Time left to play <span className="font-medium text-card-foreground">{dayName(group.draw.draw_date)}</span> draw:
                       </div>
-                      <div className="mb-5">
+                      <div className="mb-2">
                         <CountdownTimer totalSeconds={secondsUntil(group.draw.draw_date)} />
+                      </div>
+                      <div className="mb-3 text-[10px] text-muted-foreground">
+                        {formatDrawDate(group.draw.draw_date, "full")}
                       </div>
                       <Link to={`/group/${group.slug}`} className="mt-auto w-full">
                         <Button className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">

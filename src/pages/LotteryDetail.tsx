@@ -39,6 +39,7 @@ import {
   getIcon,
   getLogo,
   secondsUntil,
+  formatDrawDate,
 } from "@/lib/lotteryAssets";
 import {
   parseFormat,
@@ -532,11 +533,18 @@ const LotteryDetail = () => {
                     : "TBA"}
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">
-                  {upcomingDraw ? formatCountdown(drawCountdown) : "TBA"}
-                </span>
+              <div className="flex flex-col items-end gap-1 rounded-xl border border-border bg-card px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {upcomingDraw ? formatCountdown(drawCountdown) : "TBA"}
+                  </span>
+                </div>
+                {upcomingDraw && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatDrawDate(upcomingDraw.draw_date, "full")}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -619,11 +627,7 @@ const LotteryDetail = () => {
                         <div>
                           <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            {new Date(r.draw.draw_date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            {formatDrawDate(r.draw.draw_date, "dateOnly")}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {r.winning_numbers.map((n, i) => (
@@ -854,11 +858,7 @@ const LotteryDetail = () => {
                 <DialogTitle className="text-center">Ticket confirmed</DialogTitle>
                 <DialogDescription className="text-center">
                   Your {lottery.name} ticket is locked in for the{" "}
-                  {new Date(confirmation.drawDate).toLocaleDateString(undefined, {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}{" "}
+                  {formatDrawDate(confirmation.drawDate, "full")}{" "}
                   draw.
                 </DialogDescription>
               </DialogHeader>

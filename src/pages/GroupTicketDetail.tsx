@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWallet, formatMoney } from "@/contexts/WalletContext";
 import { SyndicatePayConfirm } from "@/components/wallet/SyndicatePayConfirm";
 import { toast } from "@/hooks/use-toast";
-import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName } from "@/lib/lotteryAssets";
+import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName, formatDrawDate } from "@/lib/lotteryAssets";
 import { Wallet as WalletIcon, Sparkles, Info } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LuckyPicksEditor } from "@/components/syndicate/LuckyPicksEditor";
@@ -348,6 +348,7 @@ const GroupTicketDetail = () => {
                   <div className="text-xs text-muted-foreground mb-2">Time left to join</div>
                   <CountdownTimer totalSeconds={secondsUntil(group.draw.draw_date)} />
                   <div className="mt-2 text-xs text-muted-foreground">Draws on <span className="font-medium text-foreground">{dayName(group.draw.draw_date)}</span></div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">{formatDrawDate(group.draw.draw_date, "full")}</div>
                 </div>
 
                 <div className="mb-5">
