@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Users, Trash2, Pencil } from "lucide-react";
+import { Loader2, Plus, Users, Trash2, Pencil, Download, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,6 +120,14 @@ export const SyndicatesManager = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [importOpen, setImportOpen] = useState(false);
+  const [importSelected, setImportSelected] = useState<Record<string, boolean>>({});
+  const [importBusy, setImportBusy] = useState(false);
+  const [importDefaults, setImportDefaults] = useState({
+    total_shares: "100",
+    price_per_share: "5",
+  });
+
   const { data: syndicates, isLoading } = useQuery({
     queryKey: ["admin-syndicates"],
     queryFn: async (): Promise<SyndicateRow[]> => {
@@ -138,6 +155,111 @@ export const SyndicatesManager = () => {
       return (data as unknown as DrawOption[]) ?? [];
     },
   });
+
+  // Importable = upcoming draws that don't yet have a syndicate.
+  const {
+    data: importable,
+    isFetching: importableLoading,
+    refetch: refetchImportable,
+  } = useQuery({
+    queryKey: ["admin-syndicate-importable"],
+    enabled: importOpen,
+    queryFn: async (): Promise<DrawOption[]> => {
+      const { data: drawRows, error: drawErr } = await supabase
+        .from("lottery_draws")
+        .select("id, draw_date, currency, lottery:lotteries!inner(name)")
+        .eq("status", "upcoming")
+        .order("draw_date", { ascending: true })
+        .limit(100);
+      if (drawErr) throw drawErr;
+      const all = (drawRows as unknown as DrawOption[]) ?? [];
+      if (all.length === 0) return [];
+      const ids = all.map((d) => d.id);
+      const { data: existing, error: synErr } = await supabase
+        .from("syndicates")
+        .select("draw_id")
+        .in("draw_id", ids);
+      if (synErr) throw synErr;
+      const taken = new Set((existing ?? []).map((r) => r.draw_id as string));
+      return all.filter((d) => !taken.has(d.id));
+    },
+  });
+
+  const openImport = async () => {
+    setImportSelected({});
+    setImportOpen(true);
+  };
+
+  const toggleAllImport = (checked: boolean) => {
+    if (!importable) return;
+    const next: Record<string, boolean> = {};
+    if (checked) for (const d of importable) next[d.id] = true;
+    setImportSelected(next);
+  };
+
+  const handleImport = async () => {
+    if (!importable) return;
+    const picks = importable.filter((d) => importSelected[d.id]);
+    if (picks.length === 0) {
+      toast.error("Select at least one draw to import");
+      return;
+    }
+    const totalShares = parseInt(importDefaults.total_shares, 10);
+    const pricePerShare = parseFloat(importDefaults.price_per_share);
+    if (!Number.isFinite(totalShares) || totalShares < 1 || totalShares > 1000) {
+      toast.error("Total shares must be 1–1000");
+      return;
+    }
+    if (!Number.isFinite(pricePerShare) || pricePerShare <= 0) {
+      toast.error("Price per share must be > 0");
+      return;
+    }
+    setImportBusy(true);
+    let created = 0;
+    let failed = 0;
+    try {
+      for (const d of picks) {
+        const dateStr = new Date(d.draw_date).toISOString().slice(0, 10);
+        const baseSlug = slugify(`${d.lottery.name}-${dateStr}`);
+        const name = `${d.lottery.name} · ${new Date(d.draw_date).toLocaleDateString()} Pool`;
+        // Ensure slug uniqueness
+        let slug = baseSlug;
+        for (let i = 1; i < 5; i++) {
+          const { data: clash } = await supabase
+            .from("syndicates")
+            .select("id")
+            .eq("slug", slug)
+            .maybeSingle();
+          if (!clash) break;
+          slug = `${baseSlug}-${i + 1}`;
+        }
+        const { error } = await supabase.from("syndicates").insert({
+          draw_id: d.id,
+          name,
+          slug,
+          description: `Auto-imported group ticket for ${d.lottery.name}.`,
+          total_shares: totalShares,
+          price_per_share: pricePerShare,
+          currency: d.currency,
+          status: "open",
+        });
+        if (error) failed += 1;
+        else created += 1;
+      }
+      if (created > 0) toast.success(`Imported ${created} syndicate${created === 1 ? "" : "s"}`);
+      if (failed > 0) toast.error(`${failed} draw${failed === 1 ? "" : "s"} failed to import`);
+      qc.invalidateQueries({ queryKey: ["admin-syndicates"] });
+      qc.invalidateQueries({ queryKey: ["admin-syndicate-importable"] });
+      qc.invalidateQueries({ queryKey: ["syndicates"] });
+      qc.invalidateQueries({ queryKey: ["admin-draws"] });
+      setImportOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
 
   const startNew = () => {
     setEditing(null);
@@ -280,9 +402,14 @@ export const SyndicatesManager = () => {
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-foreground">Existing syndicates</h2>
-            <Button onClick={startNew} size="sm" variant="outline">
-              <Plus className="mr-1.5 h-4 w-4" /> New
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={openImport} size="sm" variant="outline">
+                <Download className="mr-1.5 h-4 w-4" /> Import
+              </Button>
+              <Button onClick={startNew} size="sm" variant="outline">
+                <Plus className="mr-1.5 h-4 w-4" /> New
+              </Button>
+            </div>
           </div>
           {isLoading ? (
             <div className="flex justify-center py-6">
@@ -569,6 +696,157 @@ export const SyndicatesManager = () => {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={importOpen}
+        onOpenChange={(o) => {
+          if (!importBusy) setImportOpen(o);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import syndicates from provider draws</DialogTitle>
+            <DialogDescription>
+              Upcoming draws without a syndicate yet. Selected entries will be created as
+              open group tickets so they appear on the public Group Tickets page.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Default total shares</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={importDefaults.total_shares}
+                  onChange={(e) =>
+                    setImportDefaults((p) => ({ ...p, total_shares: e.target.value }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Default price / share</Label>
+                <Input
+                  type="number"
+                  min={0.01}
+                  step="0.01"
+                  value={importDefaults.price_per_share}
+                  onChange={(e) =>
+                    setImportDefaults((p) => ({
+                      ...p,
+                      price_per_share: e.target.value,
+                    }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-secondary/20">
+              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="syn-import-all"
+                    checked={
+                      !!importable &&
+                      importable.length > 0 &&
+                      importable.every((d) => importSelected[d.id])
+                    }
+                    onCheckedChange={(v) => toggleAllImport(!!v)}
+                  />
+                  <Label htmlFor="syn-import-all" className="text-xs">
+                    Select all ({importable?.length ?? 0})
+                  </Label>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => refetchImportable()}
+                  disabled={importableLoading}
+                  className="h-7 px-2 text-xs"
+                >
+                  <RefreshCw
+                    className={`mr-1 h-3 w-3 ${importableLoading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto p-2">
+                {importableLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : !importable || importable.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    No upcoming draws available to import. Create draws first under{" "}
+                    <strong>Draw Results</strong>.
+                  </div>
+                ) : (
+                  <ul className="space-y-1">
+                    {importable.map((d) => {
+                      const id = `syn-import-${d.id}`;
+                      return (
+                        <li
+                          key={d.id}
+                          className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+                        >
+                          <Checkbox
+                            id={id}
+                            checked={!!importSelected[d.id]}
+                            onCheckedChange={(v) =>
+                              setImportSelected((p) => ({ ...p, [d.id]: !!v }))
+                            }
+                          />
+                          <Label
+                            htmlFor={id}
+                            className="flex flex-1 cursor-pointer items-center justify-between text-xs"
+                          >
+                            <span className="truncate font-medium text-foreground">
+                              {d.lottery.name}
+                            </span>
+                            <span className="ml-2 shrink-0 text-muted-foreground">
+                              {new Date(d.draw_date).toLocaleString()} · {d.currency}
+                            </span>
+                          </Label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(false)}
+              disabled={importBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={importBusy || !importable || importable.length === 0}
+              className="bg-primary text-primary-foreground"
+            >
+              {importBusy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Import selected
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={deleteOpen}
