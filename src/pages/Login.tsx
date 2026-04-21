@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, FormEvent } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/dashboard";
 
@@ -51,7 +52,13 @@ const Login = () => {
     const { error } = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: `${window.location.origin}${from}`,
     });
-    if (error) toast({ title: "OAuth failed", description: error.message, variant: "destructive" });
+    if (error) {
+      const label = provider === "google" ? "Google" : "Apple";
+      const msg = /not enabled|provider .* disabled|unsupported/i.test(error.message)
+        ? `${label} sign-in isn't enabled yet. The site owner needs to enable it in Cloud → Users → Sign in methods.`
+        : error.message;
+      toast({ title: `${label} sign-in failed`, description: msg, variant: "destructive" });
+    }
   };
 
   return (
@@ -108,10 +115,10 @@ const Login = () => {
 
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Password</label>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 focus-within:border-primary">
                 <Lock className="h-4 w-4 text-muted-foreground" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -119,6 +126,15 @@ const Login = () => {
                   autoComplete="current-password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 

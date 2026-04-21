@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, FormEvent } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) navigate("/dashboard", { replace: true });
@@ -36,11 +37,13 @@ const Register = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        // Auth confirmation link lands the user back on /verify-email which
+        // will detect the new session and forward to /dashboard.
+        emailRedirectTo: `${window.location.origin}/verify-email`,
         data: { full_name: parsed.data.fullName },
       },
     });
@@ -49,15 +52,28 @@ const Register = () => {
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Welcome!", description: "Your account has been created." });
-    navigate("/dashboard", { replace: true });
+    // If email confirmation is enabled in Cloud, Supabase returns a user with
+    // no session. If it's disabled, a session exists and we send them straight
+    // to the dashboard. Either way, the verify-email page handles the flow.
+    if (data.session) {
+      toast({ title: "Welcome!", description: "Your account is ready." });
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/verify-email", { replace: true, state: { email: parsed.data.email } });
+    }
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     const { error } = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: `${window.location.origin}/dashboard`,
     });
-    if (error) toast({ title: "OAuth failed", description: error.message, variant: "destructive" });
+    if (error) {
+      const label = provider === "google" ? "Google" : "Apple";
+      const msg = /not enabled|provider .* disabled|unsupported/i.test(error.message)
+        ? `${label} sign-in isn't enabled yet. The site owner needs to enable it in Cloud → Users → Sign in methods.`
+        : error.message;
+      toast({ title: `${label} sign-in failed`, description: msg, variant: "destructive" });
+    }
   };
 
   return (
@@ -125,9 +141,26 @@ const Register = () => {
 
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Password</label>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 focus-within:border-primary">
                 <Lock className="h-4 w-4 text-muted-foreground" />
-                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" autoComplete="new-password" required />
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
