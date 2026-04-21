@@ -350,6 +350,42 @@ const SyndicateTickets = ({
         </div>
       </div>
 
+      {matchMode && verificationsError && (
+        <div
+          role="alert"
+          className="mb-3 flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-semibold">
+                {isPermissionError
+                  ? "Can't load your allocated numbers"
+                  : "Couldn't load your verification status"}
+              </div>
+              <div className="mt-0.5 text-destructive/80">
+                {isPermissionError
+                  ? "You don't have permission to view this syndicate's verifications. If you've just joined, sign out and back in — otherwise contact support."
+                  : verificationsError.message || "Network or server error. Try again."}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => refetchVerifications()}
+            disabled={verificationsFetching}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-md border border-destructive/40 bg-card px-3 text-[11px] font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
+          >
+            {verificationsFetching ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-3 w-3" />
+            )}
+            Retry loading my allocated numbers
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex justify-center py-6">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
