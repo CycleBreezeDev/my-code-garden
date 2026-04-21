@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
     cache.set(key, { at: Date.now(), data: { banks } });
     return json({ banks });
   } catch (e) {
-    return json({ error: String(e?.message || e) }, 500);
+    const message = e instanceof Error ? e.message : String(e);
+    return json({ error: message }, 500);
   }
 });
 
