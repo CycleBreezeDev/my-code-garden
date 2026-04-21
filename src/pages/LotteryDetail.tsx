@@ -617,7 +617,12 @@ const LotteryDetail = () => {
 
                 <Button
                   onClick={handleBuy}
-                  disabled={buying || !!validation || (user ? insufficientFunds : false)}
+                  disabled={
+                    buying ||
+                    !picksReady ||
+                    !drawAvailable ||
+                    (user ? insufficientFunds : false)
+                  }
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
@@ -630,8 +635,12 @@ const LotteryDetail = () => {
                   )}
                 </Button>
 
-                {validation && main.length + bonus.length > 0 && (
-                  <p className="mb-2 text-center text-xs text-muted-foreground">{validation}</p>
+                {/* Only inline error: insufficient balance (the picker
+                    prevents wrong counts/ranges/duplicates by design). */}
+                {user && wallet && insufficientFunds && picksReady && drawAvailable && (
+                  <p className="mb-2 text-center text-xs font-medium text-destructive">
+                    Not enough {currency} to cover {formatPrice(total, currency)}. Tap Buy to top up.
+                  </p>
                 )}
 
                 <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
