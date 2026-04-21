@@ -73,6 +73,7 @@ const App = () => (
             />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/terms" element={<Terms />} />
