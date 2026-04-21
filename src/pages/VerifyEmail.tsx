@@ -247,7 +247,9 @@ const VerifyEmail = () => {
             </p>
             <div className="mt-6 grid gap-2">
               <Button asChild className="w-full bg-primary text-primary-foreground">
-                <Link to="/login">Sign in</Link>
+                {/* Bring the user back to /verify-email after they sign in so
+                    they can retry the resend or confirm cross-tab. */}
+                <Link to="/login?return-to=/verify-email">Sign in</Link>
               </Button>
               <Button asChild variant="outline" className="w-full border-border">
                 <Link to="/register">Create an account</Link>

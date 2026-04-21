@@ -22,7 +22,20 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/dashboard";
+  // Two ways callers can request a post-login destination:
+  //   1) router state `{ from: { pathname } }` (used by ProtectedRoute)
+  //   2) `?return-to=/some/path` query string (used by friendly guard links)
+  // The query-string variant is restricted to internal absolute paths to
+  // prevent open-redirect abuse via attacker-controlled URLs.
+  const sanitizeReturnTo = (raw: string | null): string | null => {
+    if (!raw) return null;
+    if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+    return raw;
+  };
+  const search = new URLSearchParams(location.search);
+  const queryReturnTo = sanitizeReturnTo(search.get("return-to"));
+  const stateFrom = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+  const from = queryReturnTo ?? stateFrom ?? "/dashboard";
 
   useEffect(() => {
     if (user) navigate(from, { replace: true });
