@@ -3,6 +3,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { AddFundsForm } from "@/components/wallet/AddFundsDialog";
+import { WalletSubNav } from "@/components/wallet/WalletSubNav";
 
 const AddFunds = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const AddFunds = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard
             </Button>
           </Link>
+          <WalletSubNav />
           <div className="rounded-2xl border border-border bg-card p-6">
             <div className="mb-5 flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">

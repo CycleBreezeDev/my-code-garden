@@ -16,6 +16,7 @@ import {
 import { useWallet, formatMoney } from "@/contexts/WalletContext";
 import { useTransactionLookups } from "@/hooks/useTransactionLookups";
 import { TransactionRow, KIND_LABEL } from "@/components/wallet/TransactionRow";
+import { WalletSubNav } from "@/components/wallet/WalletSubNav";
 import { ArrowLeft, Download } from "lucide-react";
 
 const STATUSES = ["completed", "pending", "failed", "reversed"] as const;
@@ -107,13 +108,14 @@ const Transactions = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-3">
+          <Link to="/dashboard">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to dashboard
+          </Link>
+        </Button>
+        <WalletSubNav />
         <div className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-              <Link to="/dashboard">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back to dashboard
-              </Link>
-            </Button>
             <h1 className="font-heading text-3xl font-bold tracking-tight">Transactions</h1>
             <p className="text-sm text-muted-foreground">
               {filtered.length} of {transactions.length} entries
