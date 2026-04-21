@@ -1,25 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Users, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useCallback, type ComponentType } from "react";
-import { DisplayPrice } from "@/components/DisplayPrice";
+import { useState, useEffect, useCallback } from "react";
+import { HeroBadge, type HeroBadgeProps } from "@/components/HeroBadge";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
 
-interface SlideBadge {
-  icon: ComponentType<{ className?: string }>;
-  /** Static label. If `amount` is set, this renders before the converted price. */
-  text: string;
-  /** Optional amount in `currency` to render via <DisplayPrice />. */
-  amount?: number | null;
-  /** Source currency for `amount`. Required if `amount` is set. */
-  currency?: string | null;
-}
-
 interface Slide {
   image: string;
-  badge: SlideBadge;
+  badge: HeroBadgeProps;
   heading: [string, string];
   description: string;
   cta: { label: string; href: string };
