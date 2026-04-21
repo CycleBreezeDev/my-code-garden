@@ -41,7 +41,7 @@ type Membership = {
     currency: string;
     draw: {
       draw_date: string;
-      lottery: { name: string };
+      lottery: { name: string; color: string | null };
     };
   };
   picks?: PickMatch[];
