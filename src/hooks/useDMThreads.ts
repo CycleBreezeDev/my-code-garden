@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { onUsernameChange } from "@/lib/profileEvents";
 
 export interface DMThreadSummary {
   id: string;
@@ -103,8 +104,11 @@ export const useDMThreads = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "dm_threads" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "dm_thread_reads", filter: `user_id=eq.${user.id}` }, () => fetchAll())
       .subscribe();
+    // Refetch when ANY user (including the people we have threads with) renames.
+    const unsub = onUsernameChange(() => fetchAll());
     return () => {
       supabase.removeChannel(ch);
+      unsub();
     };
   }, [user, fetchAll]);
 

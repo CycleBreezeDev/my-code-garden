@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { onUsernameChange } from "@/lib/profileEvents";
 
 export interface DMMessage {
   id: string;
@@ -153,8 +154,11 @@ export const useDMChat = (threadId: string | undefined) => {
         },
       )
       .subscribe();
+    // Reload thread header when the other party renames.
+    const unsub = onUsernameChange(() => loadThread());
     return () => {
       supabase.removeChannel(ch);
+      unsub();
       if (typingClearRef.current) window.clearTimeout(typingClearRef.current);
     };
   }, [threadId, loadThread, loadMessages, markRead, user?.id]);

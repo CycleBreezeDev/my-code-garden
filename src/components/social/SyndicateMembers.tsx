@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { FollowButton } from "./FollowButton";
+import { onUsernameChange } from "@/lib/profileEvents";
 
 interface Member {
   user_id: string;
@@ -16,32 +17,37 @@ interface Member {
 export const SyndicateMembers = ({ syndicateId }: { syndicateId: string }) => {
   const [members, setMembers] = useState<Member[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const { data: mems } = await supabase
-        .from("syndicate_memberships")
-        .select("user_id, shares")
-        .eq("syndicate_id", syndicateId);
-      if (!mems?.length) { setMembers([]); return; }
-      // Aggregate shares per user
-      const agg = new Map<string, number>();
-      mems.forEach((m: any) => agg.set(m.user_id, (agg.get(m.user_id) ?? 0) + m.shares));
-      const ids = Array.from(agg.keys());
-      const [{ data: profiles }, { data: usernames }] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", ids),
-        supabase.from("user_profiles_public").select("user_id, username").in("user_id", ids),
-      ]);
-      const pMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
-      const uMap = new Map((usernames ?? []).map((p: any) => [p.user_id, p.username]));
-      setMembers(ids.map((id) => ({
-        user_id: id,
-        shares: agg.get(id) ?? 0,
-        full_name: (pMap.get(id) as any)?.full_name ?? null,
-        avatar_url: (pMap.get(id) as any)?.avatar_url ?? null,
-        username: (uMap.get(id) as string) ?? null,
-      })).sort((a, b) => b.shares - a.shares));
-    })();
+  const load = useCallback(async () => {
+    const { data: mems } = await supabase
+      .from("syndicate_memberships")
+      .select("user_id, shares")
+      .eq("syndicate_id", syndicateId);
+    if (!mems?.length) { setMembers([]); return; }
+    // Aggregate shares per user
+    const agg = new Map<string, number>();
+    mems.forEach((m: any) => agg.set(m.user_id, (agg.get(m.user_id) ?? 0) + m.shares));
+    const ids = Array.from(agg.keys());
+    const [{ data: profiles }, { data: usernames }] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", ids),
+      supabase.from("user_profiles_public").select("user_id, username").in("user_id", ids),
+    ]);
+    const pMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+    const uMap = new Map((usernames ?? []).map((p: any) => [p.user_id, p.username]));
+    setMembers(ids.map((id) => ({
+      user_id: id,
+      shares: agg.get(id) ?? 0,
+      full_name: (pMap.get(id) as any)?.full_name ?? null,
+      avatar_url: (pMap.get(id) as any)?.avatar_url ?? null,
+      username: (uMap.get(id) as string) ?? null,
+    })).sort((a, b) => b.shares - a.shares));
   }, [syndicateId]);
+
+  useEffect(() => {
+    load();
+    // Refetch the member list when any user renames so @handles stay current.
+    const unsub = onUsernameChange(() => load());
+    return unsub;
+  }, [load]);
 
   if (!members.length) {
     return <Card className="p-6 text-center text-sm text-muted-foreground">No members yet.</Card>;
