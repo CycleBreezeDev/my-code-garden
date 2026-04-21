@@ -123,6 +123,22 @@ export const BottomNav = () => {
               <Link
                 to={item.to}
                 aria-current={active ? "page" : undefined}
+                onClick={(e) => {
+                  // Special-case the FAQ link: if we're already on the
+                  // home page, smooth-scroll to the section instead of
+                  // letting the router re-render with a fresh scroll
+                  // position. We still update the URL hash via
+                  // history.pushState so the browser back button takes
+                  // the user back to the previous scroll position.
+                  if (item.label === "FAQ" && location.pathname === "/") {
+                    e.preventDefault();
+                    if (smoothScrollToId("how-it-works")) {
+                      if (location.hash !== "#how-it-works") {
+                        navigate("/#how-it-works", { replace: false });
+                      }
+                    }
+                  }
+                }}
                 className={cn(
                   "flex h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
                   active
