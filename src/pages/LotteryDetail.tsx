@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -162,6 +162,55 @@ const NumberPad = ({
 // Page
 // ----------------------------------------------------------------
 
+// ----------------------------------------------------------------
+// Selection persistence — keyed per-lottery so navigating between
+// lotteries doesn't leak picks across them. We use localStorage with a
+// 24h TTL so users keep their picks across a refresh but don't see a
+// stale draft from days ago. URL query params are intentionally avoided
+// because main+bonus arrays would clutter share-links and break SSR
+// crawlers; localStorage is private to the browser and survives reload.
+const STORAGE_PREFIX = "lottery-pick:v1:";
+const STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
+
+type StoredPick = { main: number[]; bonus: number[]; lines: number; savedAt: number };
+
+const loadStoredPick = (slug: string): StoredPick | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_PREFIX + slug);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredPick>;
+    if (
+      !parsed ||
+      typeof parsed.savedAt !== "number" ||
+      Date.now() - parsed.savedAt > STORAGE_TTL_MS ||
+      !Array.isArray(parsed.main) ||
+      !Array.isArray(parsed.bonus) ||
+      typeof parsed.lines !== "number"
+    ) {
+      window.localStorage.removeItem(STORAGE_PREFIX + slug);
+      return null;
+    }
+    return {
+      main: parsed.main.filter((n) => Number.isFinite(n)),
+      bonus: parsed.bonus.filter((n) => Number.isFinite(n)),
+      lines: Math.min(50, Math.max(1, Math.floor(parsed.lines))),
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const clearStoredPick = (slug: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_PREFIX + slug);
+  } catch {
+    /* ignore quota / private-mode errors */
+  }
+};
+
 const LotteryDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -169,10 +218,32 @@ const LotteryDetail = () => {
   const { user } = useAuth();
   const { wallets, refresh: refreshWallet } = useWallet();
 
-  const [main, setMain] = useState<number[]>([]);
-  const [bonus, setBonus] = useState<number[]>([]);
-  const [lines, setLines] = useState(1);
+  // Lazy initial state hydrates synchronously from localStorage so the
+  // first paint already shows the persisted picks (no flicker).
+  const initial = useMemo(() => (slug ? loadStoredPick(slug) : null), [slug]);
+  const [main, setMain] = useState<number[]>(initial?.main ?? []);
+  const [bonus, setBonus] = useState<number[]>(initial?.bonus ?? []);
+  const [lines, setLines] = useState(initial?.lines ?? 1);
   const [buying, setBuying] = useState(false);
+
+  // Persist picks + lines whenever they change. Empty selections clear
+  // the slot so we don't waste storage on a blank slate. Wrapped in a
+  // try/catch because Safari private mode can throw on setItem.
+  useEffect(() => {
+    if (!slug) return;
+    if (main.length === 0 && bonus.length === 0 && lines === 1) {
+      clearStoredPick(slug);
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        STORAGE_PREFIX + slug,
+        JSON.stringify({ main, bonus, lines, savedAt: Date.now() } satisfies StoredPick)
+      );
+    } catch {
+      /* ignore quota / private-mode errors */
+    }
+  }, [slug, main, bonus, lines]);
 
   // ----- Lottery + upcoming draw ---------------------------------
   const { data: lottery, isLoading } = useQuery({
@@ -372,6 +443,7 @@ const LotteryDetail = () => {
     });
     handleClear();
     setLines(1);
+    if (slug) clearStoredPick(slug);
     await refreshWallet();
     queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
     navigate(`/dashboard?tab=tickets&new=${data}`);
