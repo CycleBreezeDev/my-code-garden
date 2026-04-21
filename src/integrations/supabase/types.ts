@@ -238,11 +238,47 @@ export type Database = {
           },
         ]
       }
+      ticket_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          storage_path: string
+          syndicate_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path: string
+          syndicate_id: string
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path?: string
+          syndicate_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_images_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      is_syndicate_member: { Args: { _syndicate_id: string }; Returns: boolean }
       join_syndicate:
         | { Args: { _shares: number; _syndicate_id: string }; Returns: string }
         | {
