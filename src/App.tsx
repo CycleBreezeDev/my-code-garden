@@ -12,6 +12,7 @@ import Results from "./pages/Results.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
+import VerifyEmail from "./pages/VerifyEmail.tsx";
 import GroupTicketDetail from "./pages/GroupTicketDetail.tsx";
 import PaymentCallback from "./pages/PaymentCallback.tsx";
 import Admin from "./pages/Admin.tsx";
