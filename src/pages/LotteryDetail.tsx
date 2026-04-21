@@ -406,6 +406,7 @@ const LotteryDetail = () => {
                     selected={main}
                     onToggle={toggleMain}
                     color={color}
+                    disabled={buying}
                   />
                 </div>
 
@@ -419,12 +420,18 @@ const LotteryDetail = () => {
                       selected={bonus}
                       onToggle={toggleBonus}
                       color={color}
+                      disabled={buying}
                     />
                   </div>
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={handleQuickPick} variant="outline" className="border-border">
+                  <Button
+                    onClick={handleQuickPick}
+                    variant="outline"
+                    className="border-border"
+                    disabled={buying}
+                  >
                     <Sparkles className="mr-1.5 h-4 w-4" />
                     Quick Pick
                   </Button>
@@ -432,7 +439,7 @@ const LotteryDetail = () => {
                     onClick={handleClear}
                     variant="outline"
                     className="border-border"
-                    disabled={main.length === 0 && bonus.length === 0}
+                    disabled={buying || (main.length === 0 && bonus.length === 0)}
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
                     Clear All
