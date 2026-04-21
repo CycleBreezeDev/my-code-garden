@@ -20,6 +20,7 @@ import { FxPairsManager } from "@/components/admin/FxPairsManager";
 import { KycManager } from "@/components/admin/KycManager";
 import { SocialReports } from "@/components/admin/SocialReports";
 import SyndicatePicksManager from "@/components/admin/SyndicatePicksManager";
+import SecretsAudit from "@/components/admin/SecretsAudit";
 
 type DrawRow = {
   id: string;
@@ -416,6 +417,10 @@ const Admin = () => {
 
           <div className="mt-6">
             <SocialReports />
+          </div>
+
+          <div className="mt-6">
+            <SecretsAudit />
           </div>
         </div>
       </main>
