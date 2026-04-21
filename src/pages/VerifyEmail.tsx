@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Mail, ArrowLeft, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
  * one-click "Resend confirmation" action.
  */
 const RESEND_COOLDOWN_SECONDS = 60;
+const VERIFICATION_POLL_MS = 4000;
+const VERIFICATION_CHANNEL = "epiclotto-auth";
+const VERIFIED_FLAG_KEY = "verify-email:verified-at";
 const cooldownKey = (e: string) => `verify-email:resend-until:${e.trim().toLowerCase()}`;
 
 const VerifyEmail = () => {
@@ -24,6 +27,9 @@ const VerifyEmail = () => {
   const [resending, setResending] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const [now, setNow] = useState<number>(() => Date.now());
+  // Detected externally (sibling tab / direct GET) — drives the success card.
+  const [verifiedExternally, setVerifiedExternally] = useState(false);
+  const redirectingRef = useRef(false);
 
   // Restore any active cooldown for the current email from localStorage so a
   // refresh or revisit can't bypass the limit. Re-runs whenever the email
@@ -53,10 +59,127 @@ const VerifyEmail = () => {
   const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   const isCoolingDown = remainingSeconds > 0;
 
-  // If the user clicks the email link and gets auto-signed-in, send them onward.
+  // When this tab completed verification, broadcast to any sibling
+  // /verify-email tabs so they can advance immediately.
   useEffect(() => {
-    if (!authLoading && user) navigate("/dashboard", { replace: true });
-  }, [user, authLoading, navigate]);
+    if (!user) return;
+    try {
+      localStorage.setItem(VERIFIED_FLAG_KEY, String(Date.now()));
+    } catch {
+      // ignore — storage may be blocked
+    }
+    try {
+      const bc = new BroadcastChannel(VERIFICATION_CHANNEL);
+      bc.postMessage({ type: "email-verified" });
+      bc.close();
+    } catch {
+      // ignore — BroadcastChannel unsupported
+    }
+  }, [user]);
+
+  // Once we know the user has verified — either because Supabase signed them
+  // in on this tab (user truthy) or because we detected verification via poll
+  // / cross-tab broadcast — show the brief success state and forward.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user && !verifiedExternally) return;
+    if (redirectingRef.current) return;
+    redirectingRef.current = true;
+
+    // If a session exists in this tab, jump straight to the dashboard.
+    // Otherwise (verified in another tab), send to /login so they can sign in.
+    const target = user ? "/dashboard" : "/login";
+    toast({
+      title: "Email verified",
+      description: user ? "Signing you in…" : "You can now sign in.",
+    });
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.removeItem(VERIFIED_FLAG_KEY);
+      } catch {
+        // ignore
+      }
+      navigate(target, { replace: true });
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [user, authLoading, verifiedExternally, navigate]);
+
+  // Cross-tab + background detection of email verification.
+  // Three independent signals so we don't depend on any one of them:
+  //   1) Supabase auth event in this tab (covers same-tab opens).
+  //   2) BroadcastChannel + localStorage flag from a sibling tab that just
+  //      finished the confirmation flow.
+  //   3) Polling getUser() while the tab is visible — the slow path used when
+  //      the user opens the link in a different browser entirely.
+  useEffect(() => {
+    if (user || verifiedExternally) return;
+
+    const markVerified = () => setVerifiedExternally(true);
+
+    // (1) live auth events
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        session?.user ||
+        event === "SIGNED_IN" ||
+        event === "USER_UPDATED" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        markVerified();
+      }
+    });
+
+    // (2a) cross-tab via BroadcastChannel (modern browsers)
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(VERIFICATION_CHANNEL);
+      bc.onmessage = (ev) => {
+        if (ev?.data?.type === "email-verified") markVerified();
+      };
+    } catch {
+      // BroadcastChannel unsupported — storage event below still works.
+    }
+
+    // (2b) cross-tab via storage event (covers older browsers + private mode)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === VERIFIED_FLAG_KEY && e.newValue) markVerified();
+    };
+    window.addEventListener("storage", onStorage);
+
+    // If a sibling tab already wrote the flag before we mounted, pick it up.
+    try {
+      if (localStorage.getItem(VERIFIED_FLAG_KEY)) markVerified();
+    } catch {
+      // Ignore — storage may be blocked.
+    }
+
+    // (3) periodic poll while the tab is visible
+    let pollId: number | null = null;
+    const startPoll = () => {
+      if (pollId !== null) return;
+      pollId = window.setInterval(async () => {
+        if (document.hidden) return;
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) markVerified();
+      }, VERIFICATION_POLL_MS);
+    };
+    const stopPoll = () => {
+      if (pollId !== null) {
+        window.clearInterval(pollId);
+        pollId = null;
+      }
+    };
+    if (!document.hidden) startPoll();
+    const onVisibility = () => (document.hidden ? stopPoll() : startPoll());
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      bc?.close();
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopPoll();
+    };
+  }, [user, verifiedExternally]);
 
   // Wait for auth to resolve before deciding what to render to avoid flashing
   // the "missing email" guard while the session is still being restored.
@@ -68,25 +191,31 @@ const VerifyEmail = () => {
     );
   }
 
-  // Page guard — already signed in: nudge them to the dashboard / login instead
-  // of showing a confusing "check your email" screen.
-  if (user) {
+  // Verified — short success screen shown for ~800ms before redirect kicks in.
+  // Covers both same-tab (user truthy) and cross-tab (verifiedExternally) paths.
+  if (user || verifiedExternally) {
+    const goingTo = user ? "dashboard" : "sign in";
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">You're already signed in</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Email verified</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Looks like your account is active. Head to your dashboard to keep playing.
+            Taking you to {goingTo}…
           </p>
-          <div className="mt-6 grid gap-2">
-            <Button asChild className="w-full bg-primary text-primary-foreground">
-              <Link to="/dashboard">Go to dashboard</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full border-border">
-              <Link to="/">Back to home</Link>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Redirecting
+          </div>
+          <div className="mt-6">
+            <Button
+              asChild
+              variant="outline"
+              className="w-full border-border"
+            >
+              <Link to={user ? "/dashboard" : "/login"}>Continue now</Link>
             </Button>
           </div>
         </div>
