@@ -308,12 +308,16 @@ const LotteryDetail = () => {
     }
 
     setBuying(true);
-    const { data, error } = await supabase.rpc("wallet_buy_ticket", {
-      _draw_id: upcomingDraw.id,
-      _main: main,
-      _bonus: bonus,
-      _lines: lines,
-    });
+    // The generated Supabase types may not include the new RPC yet — cast
+    // the function name so the typecheck doesn't block the build until
+    // types regenerate after the migration is applied.
+    const { data, error } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: string | null; error: { message: string } | null }>)(
+      "wallet_buy_ticket",
+      { _draw_id: upcomingDraw.id, _main: main, _bonus: bonus, _lines: lines }
+    );
     setBuying(false);
 
     if (error) {
