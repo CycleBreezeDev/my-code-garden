@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ArrowRight, Star, Shield, Eye, Ticket, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
-import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName } from "@/lib/lotteryAssets";
+import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName, formatDrawDate } from "@/lib/lotteryAssets";
 import { DisplayPrice } from "@/components/DisplayPrice";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
