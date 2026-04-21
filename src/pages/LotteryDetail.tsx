@@ -104,6 +104,7 @@ const NumberPad = ({
   selected,
   onToggle,
   color,
+  disabled = false,
 }: {
   label: string;
   min: number;
@@ -112,10 +113,12 @@ const NumberPad = ({
   selected: number[];
   onToggle: (n: number) => void;
   color: string;
+  /** When true, every number button is non-interactive (e.g. during purchase). */
+  disabled?: boolean;
 }) => {
   const numbers = useMemo(() => range(min, max), [min, max]);
   return (
-    <div>
+    <div aria-busy={disabled}>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           {label} ({min}–{max})
@@ -124,16 +127,17 @@ const NumberPad = ({
           {selected.length}/{required}
         </span>
       </div>
-      <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-10">
+      <div className={`grid grid-cols-7 gap-1.5 sm:grid-cols-10 ${disabled ? "opacity-60" : ""}`}>
         {numbers.map((n) => {
           const isSelected = selected.includes(n);
           const isFull = selected.length >= required && !isSelected;
+          const isDisabled = disabled || isFull;
           return (
             <button
               key={n}
               type="button"
               onClick={() => onToggle(n)}
-              disabled={isFull}
+              disabled={isDisabled}
               aria-pressed={isSelected}
               className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                 isSelected
