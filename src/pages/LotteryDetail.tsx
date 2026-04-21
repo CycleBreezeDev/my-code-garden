@@ -542,7 +542,7 @@ const LotteryDetail = () => {
                     <button
                       type="button"
                       onClick={() => setLines((n) => Math.max(1, n - 1))}
-                      disabled={lines <= 1}
+                      disabled={buying || lines <= 1}
                       aria-label="Decrease lines"
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
                     >
@@ -554,7 +554,7 @@ const LotteryDetail = () => {
                     <button
                       type="button"
                       onClick={() => setLines((n) => Math.min(50, n + 1))}
-                      disabled={lines >= 50}
+                      disabled={buying || lines >= 50}
                       aria-label="Increase lines"
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
                     >
