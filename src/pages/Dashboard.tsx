@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
