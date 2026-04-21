@@ -44,10 +44,19 @@ export const useTicketPickVerifications = (syndicateId: string | undefined) => {
         if (/relation .* does not exist|schema cache/i.test(error.message)) {
           return [];
         }
-        throw new Error(error.message);
+        // Permission / RLS / auth errors should surface so the UI can show
+        // a clear "can't load" message + retry button.
+        const isPermission =
+          /permission denied|row-level security|rls|jwt|not authenticated|forbidden|unauthor/i.test(
+            error.message
+          );
+        const err = new Error(error.message) as Error & { code?: string };
+        err.code = isPermission ? "PERMISSION" : "UNKNOWN";
+        throw err;
       }
       return data ?? [];
     },
+    retry: false,
   });
 };
 
