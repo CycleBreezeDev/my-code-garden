@@ -59,10 +59,102 @@ const VerifyEmail = () => {
   const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   const isCoolingDown = remainingSeconds > 0;
 
-  // If the user clicks the email link and gets auto-signed-in, send them onward.
+  // Once we know the user has verified — either because Supabase signed them
+  // in on this tab (user truthy) or because we detected verification via poll
+  // / cross-tab broadcast — show the brief success state and forward.
   useEffect(() => {
-    if (!authLoading && user) navigate("/dashboard", { replace: true });
-  }, [user, authLoading, navigate]);
+    if (authLoading) return;
+    if (!user && !verifiedExternally) return;
+    if (redirectingRef.current) return;
+    redirectingRef.current = true;
+
+    // If a session exists in this tab, jump straight to the dashboard.
+    // Otherwise (verified in another tab), send to /login so they can sign in.
+    const target = user ? "/dashboard" : "/login";
+    toast({
+      title: "Email verified",
+      description: user ? "Signing you in…" : "You can now sign in.",
+    });
+    const t = window.setTimeout(() => navigate(target, { replace: true }), 800);
+    return () => window.clearTimeout(t);
+  }, [user, authLoading, verifiedExternally, navigate]);
+
+  // Cross-tab + background detection of email verification.
+  // Three independent signals so we don't depend on any one of them:
+  //   1) Supabase auth event in this tab (covers same-tab opens).
+  //   2) BroadcastChannel + localStorage flag from a sibling tab that just
+  //      finished the confirmation flow.
+  //   3) Polling getUser() while the tab is visible — the slow path used when
+  //      the user opens the link in a different browser entirely.
+  useEffect(() => {
+    if (user || verifiedExternally) return;
+
+    const markVerified = () => setVerifiedExternally(true);
+
+    // (1) live auth events
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        session?.user ||
+        event === "SIGNED_IN" ||
+        event === "USER_UPDATED" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        markVerified();
+      }
+    });
+
+    // (2a) cross-tab via BroadcastChannel (modern browsers)
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(VERIFICATION_CHANNEL);
+      bc.onmessage = (ev) => {
+        if (ev?.data?.type === "email-verified") markVerified();
+      };
+    } catch {
+      // BroadcastChannel unsupported — storage event below still works.
+    }
+
+    // (2b) cross-tab via storage event (covers older browsers + private mode)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === VERIFIED_FLAG_KEY && e.newValue) markVerified();
+    };
+    window.addEventListener("storage", onStorage);
+
+    // If a sibling tab already wrote the flag before we mounted, pick it up.
+    try {
+      if (localStorage.getItem(VERIFIED_FLAG_KEY)) markVerified();
+    } catch {
+      // Ignore — storage may be blocked.
+    }
+
+    // (3) periodic poll while the tab is visible
+    let pollId: number | null = null;
+    const startPoll = () => {
+      if (pollId !== null) return;
+      pollId = window.setInterval(async () => {
+        if (document.hidden) return;
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) markVerified();
+      }, VERIFICATION_POLL_MS);
+    };
+    const stopPoll = () => {
+      if (pollId !== null) {
+        window.clearInterval(pollId);
+        pollId = null;
+      }
+    };
+    if (!document.hidden) startPoll();
+    const onVisibility = () => (document.hidden ? stopPoll() : startPoll());
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      bc?.close();
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopPoll();
+    };
+  }, [user, verifiedExternally]);
 
   // Wait for auth to resolve before deciding what to render to avoid flashing
   // the "missing email" guard while the session is still being restored.
