@@ -380,6 +380,16 @@ const SyndicateTickets = ({
                   picks={myAllocated}
                   color={lotteryColor}
                   highlightShareIndex={highlightShareIndex}
+                  ticketImageId={img.id}
+                  syndicateId={syndicate.id}
+                  membershipId={syndicate.membership_id}
+                  verifiedShareIndexes={verifiedByImage.get(img.id) ?? new Set<number>()}
+                  onToggle={(shareIndex, next) => handleToggle(img.id, shareIndex, next)}
+                  toggleBusy={
+                    busyKey?.startsWith(`${img.id}:`)
+                      ? Number(busyKey.split(":")[1])
+                      : null
+                  }
                 />
               )}
             </div>
