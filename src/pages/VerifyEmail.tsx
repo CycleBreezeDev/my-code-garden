@@ -12,6 +12,9 @@ import { toast } from "@/hooks/use-toast";
  * `location.state.email` so we can show a precise instruction and offer a
  * one-click "Resend confirmation" action.
  */
+const RESEND_COOLDOWN_SECONDS = 60;
+const cooldownKey = (e: string) => `verify-email:resend-until:${e.trim().toLowerCase()}`;
+
 const VerifyEmail = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,6 +22,36 @@ const VerifyEmail = () => {
   const stateEmail = (location.state as { email?: string } | null)?.email ?? "";
   const [email, setEmail] = useState(stateEmail);
   const [resending, setResending] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  // Restore any active cooldown for the current email from localStorage so a
+  // refresh or revisit can't bypass the limit. Re-runs whenever the email
+  // string changes (e.g. user types into the resend input).
+  useEffect(() => {
+    if (!email) {
+      setCooldownUntil(0);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(cooldownKey(email));
+      const until = raw ? Number(raw) : 0;
+      setCooldownUntil(until > Date.now() ? until : 0);
+    } catch {
+      setCooldownUntil(0);
+    }
+  }, [email]);
+
+  // Tick once per second only while a cooldown is active to drive the
+  // countdown label without re-rendering the whole page in the idle state.
+  useEffect(() => {
+    if (cooldownUntil <= now) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [cooldownUntil, now]);
+
+  const remainingSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const isCoolingDown = remainingSeconds > 0;
 
   // If the user clicks the email link and gets auto-signed-in, send them onward.
   useEffect(() => {
