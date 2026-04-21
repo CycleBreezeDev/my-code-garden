@@ -465,6 +465,21 @@ const LotteryDetail = () => {
       }
       return;
     }
+    // Snapshot the purchase *before* clearing the picker so the
+    // confirmation dialog reflects what was actually bought.
+    const ticketId = data ?? "";
+    setConfirmation({
+      ticketId,
+      drawDate: upcomingDraw.draw_date,
+      main: [...main],
+      bonus: [...bonus],
+      lines,
+      total,
+      currency,
+      pricePerLine,
+      discount,
+      paymentReference: ticketId ? `ticket:${ticketId}` : "",
+    });
     toast.success("Ticket purchased! 🎟️", {
       description: `${lines} line${lines > 1 ? "s" : ""} for ${lottery.name}`,
     });
@@ -473,7 +488,7 @@ const LotteryDetail = () => {
     if (slug) clearStoredPick(slug);
     await refreshWallet();
     queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
-    navigate(`/dashboard?tab=tickets&new=${data}`);
+    // Don't auto-redirect — let the confirmation dialog drive next steps.
   };
 
   // ----- Render ---------------------------------------------------
