@@ -20,6 +20,7 @@ import { Wallet as WalletIcon, Sparkles, Info } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LuckyPicksEditor } from "@/components/syndicate/LuckyPicksEditor";
 import { MyPicksCard } from "@/components/syndicate/MyPicksCard";
+import { DrawSelector } from "@/components/syndicate/DrawSelector";
 import MyTicketsSection from "@/components/MyTicketsSection";
 import { parseFormat, type LuckyPick, type NumberFormat } from "@/lib/numberFormat";
 
@@ -49,7 +50,7 @@ type SyndicateDetail = {
     draw_date: string;
     jackpot_amount: number;
     currency: string;
-    lottery: { slug: string; name: string; color: string | null; icon: string | null; draw_days: string | null; logo_url: string | null; number_format: unknown };
+    lottery: { id: string; slug: string; name: string; color: string | null; icon: string | null; draw_days: string | null; logo_url: string | null; number_format: unknown };
   };
 };
 
@@ -109,7 +110,7 @@ const GroupTicketDetail = () => {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("syndicates")
-        .select("id, slug, name, description, total_shares, sold_shares, price_per_share, currency, status, picks_lock_offset_minutes, draw:lottery_draws!inner(id, draw_date, jackpot_amount, currency, lottery:lotteries!inner(slug, name, color, icon, draw_days, logo_url, number_format))")
+        .select("id, slug, name, description, total_shares, sold_shares, price_per_share, currency, status, picks_lock_offset_minutes, draw:lottery_draws!inner(id, draw_date, jackpot_amount, currency, lottery:lotteries!inner(id, slug, name, color, icon, draw_days, logo_url, number_format))")
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
@@ -210,6 +211,14 @@ const GroupTicketDetail = () => {
             <Link to="/syndicates" className="hover:text-primary transition-colors">Group Tickets</Link>
             <span>/</span>
             <span className="text-foreground">{group.name}</span>
+          </div>
+
+          <div className="mb-6">
+            <DrawSelector
+              lotteryId={group.draw.lottery.id}
+              lotteryName={group.draw.lottery.name}
+              currentSyndicateId={group.id}
+            />
           </div>
 
           <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
