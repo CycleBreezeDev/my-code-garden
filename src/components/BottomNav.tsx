@@ -54,7 +54,7 @@ const isItemActive = (pathname: string, item: Item): boolean => {
  * already provides full navigation.
  */
 export const BottomNav = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
