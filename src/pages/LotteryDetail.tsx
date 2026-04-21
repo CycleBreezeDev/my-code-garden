@@ -32,7 +32,6 @@ import {
 import {
   parseFormat,
   quickPick,
-  validatePick,
   type NumberFormat,
 } from "@/lib/numberFormat";
 
