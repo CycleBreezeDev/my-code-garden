@@ -60,23 +60,41 @@ const SignedImage = ({ path }: { path: string }) => {
 const MyNumbersOverlay = ({
   picks,
   color,
+  highlightShareIndex,
 }: {
   picks: SyndicatePickRow[];
   color: string;
+  highlightShareIndex?: number | null;
 }) => (
   <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
     <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-primary">
       My allocated lines ({picks.length})
     </div>
     <ul className="space-y-1.5">
-      {picks.map((p) => (
-        <li key={p.id} className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-muted-foreground w-12 shrink-0">
-            #{p.share_index}
-          </span>
-          <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
-        </li>
-      ))}
+      {picks.map((p) => {
+        const isMatch = highlightShareIndex === p.share_index;
+        return (
+          <li
+            key={p.id}
+            className={
+              isMatch
+                ? "flex items-center gap-2 rounded-md bg-primary/15 px-2 py-1.5 ring-2 ring-primary animate-pulse"
+                : "flex items-center gap-2"
+            }
+          >
+            <span
+              className={
+                isMatch
+                  ? "text-[10px] font-mono font-bold text-primary w-12 shrink-0"
+                  : "text-[10px] font-mono text-muted-foreground w-12 shrink-0"
+              }
+            >
+              #{p.share_index}
+            </span>
+            <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
+          </li>
+        );
+      })}
     </ul>
   </div>
 );
