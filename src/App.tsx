@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import { WalletProvider } from "./contexts/WalletContext";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <CurrencyProvider>
           <WalletProvider>
           <ScrollToTop />
           <Routes>
@@ -92,6 +94,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </WalletProvider>
+          </CurrencyProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
