@@ -142,6 +142,15 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    /* Reserve space for the mobile bottom nav so fixed/last elements
+       aren't hidden behind it. Resets at md+. */
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+  }
+
+  @media (min-width: 768px) {
+    body {
+      padding-bottom: 0;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
