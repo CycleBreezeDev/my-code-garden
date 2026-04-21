@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { authLog, serializeError } from "@/lib/authLogger";
 
 interface Profile {
   id: string;
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [retryTick, setRetryTick] = useState(0);
 
   const retry = () => {
+    authLog.info("AuthProvider.retry", "user-initiated retry of session restore");
     setError(null);
     setLoading(true);
     setRetryTick((n) => n + 1);
@@ -37,9 +39,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let cancelled = false;
+    const startedAt = performance.now();
+    authLog.info("AuthProvider.init", "starting session restore", {
+      retryTick,
+      online: typeof navigator !== "undefined" ? navigator.onLine : "unknown",
+      href: typeof window !== "undefined" ? window.location.href : "unknown",
+    });
 
     // Set up listener BEFORE getSession
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      authLog.info("AuthProvider.onAuthStateChange", event, {
+        hasSession: !!newSession,
+        userId: newSession?.user?.id ?? null,
+      });
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
@@ -50,7 +62,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .select("*")
             .eq("user_id", newSession.user.id)
             .maybeSingle()
-            .then(({ data }) => setProfile(data as Profile | null));
+            .then(({ data, error: profileError }) => {
+              if (profileError) {
+                authLog.warn("AuthProvider.profileFetch", "profile fetch failed (listener)", serializeError(profileError));
+                return;
+              }
+              setProfile(data as Profile | null);
+            });
         }, 0);
       } else {
         setProfile(null);
@@ -63,8 +81,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // blank "Loading…" screen indefinitely.
     supabase.auth
       .getSession()
-      .then(({ data: { session: existing } }) => {
+      .then(({ data: { session: existing }, error: sessionError }) => {
         if (cancelled) return;
+        const elapsed = Math.round(performance.now() - startedAt);
+        if (sessionError) {
+          authLog.error("AuthProvider.getSession", `resolved with error in ${elapsed}ms`, serializeError(sessionError));
+          setError(sessionError instanceof Error ? sessionError : new Error(String(sessionError)));
+          return;
+        }
+        authLog.info("AuthProvider.getSession", `resolved in ${elapsed}ms`, {
+          hasSession: !!existing,
+          userId: existing?.user?.id ?? null,
+        });
         setSession(existing);
         setUser(existing?.user ?? null);
         if (existing?.user) {
@@ -75,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .maybeSingle()
             .then(({ data, error: profileError }) => {
               if (profileError) {
-                /* profile fetch failure is non-fatal */
+                authLog.warn("AuthProvider.profileFetch", "profile fetch failed (init)", serializeError(profileError));
                 return;
               }
               setProfile(data as Profile | null);
@@ -83,7 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       })
       .catch((err) => {
-        console.error("[Auth] getSession failed", err);
+        const elapsed = Math.round(performance.now() - startedAt);
+        authLog.error("AuthProvider.getSession", `rejected in ${elapsed}ms`, serializeError(err));
         if (cancelled) return;
         setError(err instanceof Error ? err : new Error(String(err)));
       })
@@ -99,7 +128,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (cancelled) return;
       setLoading((prev) => {
         if (prev) {
-          console.warn("[Auth] loading state forced to false by safety timeout");
+          authLog.warn("AuthProvider.safetyTimeout", "loading forced to false after 5000ms — getSession never resolved", {
+            online: typeof navigator !== "undefined" ? navigator.onLine : "unknown",
+          });
           setError((prevErr) => prevErr ?? new Error("Authentication timed out. Please retry."));
         }
         return false;
