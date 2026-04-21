@@ -1,0 +1,34 @@
+project_id = "yxhcxajipfdflpilubpd"
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.refresh-lottery-feeds]
+verify_jwt = false
+
+[functions.wallet-topup-webhook]
+verify_jwt = false
+
+[functions.payout-webhook-paystack]
+verify_jwt = false
+
+[functions.payout-webhook-flutterwave]
+verify_jwt = false
+
+[functions.bank-list]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = true
+
+[functions.send-transactional-email]
+verify_jwt = true
+
+[functions.preview-transactional-email]
+verify_jwt = false
+
+[functions.handle-email-unsubscribe]
+verify_jwt = false
+
+[functions.handle-email-suppression]
+verify_jwt = false

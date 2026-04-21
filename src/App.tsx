@@ -4,7 +4,35 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
+import Lotteries from "./pages/Lotteries.tsx";
+import LotteryDetail from "./pages/LotteryDetail.tsx";
+import LotteryHistory from "./pages/LotteryHistory.tsx";
+import Syndicates from "./pages/Syndicates.tsx";
+import Results from "./pages/Results.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import Login from "./pages/Login.tsx";
+import Register from "./pages/Register.tsx";
+import GroupTicketDetail from "./pages/GroupTicketDetail.tsx";
+import PaymentCallback from "./pages/PaymentCallback.tsx";
+import Admin from "./pages/Admin.tsx";
+import Kyc from "./pages/Kyc.tsx";
+import Contact from "./pages/Contact.tsx";
+import Terms from "./pages/Terms.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import ResponsiblePlay from "./pages/ResponsiblePlay.tsx";
+import Cookies from "./pages/Cookies.tsx";
+import Unsubscribe from "./pages/Unsubscribe.tsx";
+import PublicProfile from "./pages/PublicProfile.tsx";
+import FeedPage from "./pages/Feed.tsx";
+import NotificationsPage from "./pages/Notifications.tsx";
+import MessagesPage from "./pages/Messages.tsx";
+import AddFunds from "./pages/AddFunds.tsx";
+import Withdraw from "./pages/Withdraw.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ScrollToTop from "./components/ScrollToTop.tsx";
+import { AuthProvider } from "./contexts/AuthContext";
+import { WalletProvider } from "./contexts/WalletContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +42,53 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <WalletProvider>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/lotteries" element={<Lotteries />} />
+            <Route path="/lottery/:slug" element={<LotteryDetail />} />
+            <Route path="/lotteries/:slug/history" element={<LotteryHistory />} />
+            <Route path="/syndicates" element={<Syndicates />} />
+            <Route path="/group/:slug" element={<GroupTicketDetail />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/payment/callback" element={<PaymentCallback />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/responsible-play" element={<ResponsiblePlay />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/u/:username" element={<PublicProfile />} />
+            <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+            <Route path="/wallet/add-funds" element={<ProtectedRoute><AddFunds /></ProtectedRoute>} />
+            <Route path="/wallet/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          </WalletProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
