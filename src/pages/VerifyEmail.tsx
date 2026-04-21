@@ -27,6 +27,9 @@ const VerifyEmail = () => {
   const [resending, setResending] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const [now, setNow] = useState<number>(() => Date.now());
+  // Detected externally (sibling tab / direct GET) — drives the success card.
+  const [verifiedExternally, setVerifiedExternally] = useState(false);
+  const redirectingRef = useRef(false);
 
   // Restore any active cooldown for the current email from localStorage so a
   // refresh or revisit can't bypass the limit. Re-runs whenever the email
