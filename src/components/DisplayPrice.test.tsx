@@ -41,22 +41,14 @@ describe("DisplayPrice — tooltip visual contract", () => {
     expect(trigger?.className).toContain("tabular-nums");
   });
 
-  it("uses the standard tooltip layout (space-y-1, font-medium original, text-xs muted rate)", async () => {
+  it("renders the converted (target-currency) amount in the trigger", () => {
     fxRateMock.mockReturnValue({ data: 1500, isError: false, isLoading: false });
 
-    render(<DisplayPrice amount={10} sourceCurrency="USD" />);
+    const { container } = render(<DisplayPrice amount={10} sourceCurrency="USD" />);
 
-    // Radix renders tooltip content into the DOM via portal but only on
-    // open. We render it manually by inspecting the unrendered node tree
-    // via a snapshot of the source file — the structural test below is the
-    // authoritative check. Here we just assert the trigger price is the
-    // *converted* value, proving the conversion path ran.
-    const formatted = new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: "NGN",
-      maximumFractionDigits: 2,
-    }).format(15000);
-    expect(screen.getByText(formatted)).toBeInTheDocument();
+    // 10 USD × 1500 = 15,000 NGN. Whitespace between code and number can
+    // be a regular or non-breaking space, so match loosely.
+    expect(container.textContent ?? "").toMatch(/NGN\s*15,000/);
   });
 
   it("falls back to the source amount with no tooltip while FX is loading", () => {
