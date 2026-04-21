@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  Download,
   Loader2,
   Minus,
   Plus,
