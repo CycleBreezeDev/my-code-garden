@@ -11,6 +11,7 @@ import {
   useTicketPickVerifications,
   useToggleTicketPickVerification,
 } from "@/hooks/useTicketPickVerifications";
+import MyPurchasedTicketsList from "@/components/MyPurchasedTicketsList";
 
 type TicketImage = {
   id: string;
