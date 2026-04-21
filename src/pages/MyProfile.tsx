@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Ticket, Users, MessageSquare, UsersRound, UserCheck } from "lucide-react";
+import { Loader2, Settings, Ticket, Users, MessageSquare, UsersRound, UserCheck, Compass, UserPlus, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyProfile, type MyProfileData } from "@/hooks/useMyProfile";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -15,6 +15,7 @@ import { AvatarUploader } from "@/components/profile/AvatarUploader";
 import { CoverUploader } from "@/components/profile/CoverUploader";
 import { AccountSettingsCard } from "@/components/profile/AccountSettingsCard";
 import { MyPostsTab } from "@/components/profile/MyPostsTab";
+import { EmptyState } from "@/components/profile/EmptyState";
 import MyTicketsSection from "@/components/MyTicketsSection";
 import { FollowButton } from "@/components/social/FollowButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +80,15 @@ const useFollowList = (
   return { rows, loading };
 };
 
-const UserList = ({ rows, loading, emptyText }: { rows: FollowRow[]; loading: boolean; emptyText: string }) => {
+const UserList = ({
+  rows,
+  loading,
+  empty,
+}: {
+  rows: FollowRow[];
+  loading: boolean;
+  empty: React.ReactNode;
+}) => {
   if (loading) {
     return (
       <div className="flex justify-center py-10">
@@ -88,7 +97,7 @@ const UserList = ({ rows, loading, emptyText }: { rows: FollowRow[]; loading: bo
     );
   }
   if (!rows.length) {
-    return <Card className="p-6 text-center text-sm text-muted-foreground">{emptyText}</Card>;
+    return <>{empty}</>;
   }
   return (
     <Card className="divide-y divide-border">
@@ -138,9 +147,13 @@ const GroupsTab = ({ userId }: { userId: string }) => {
   }
   if (!data?.length) {
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">
-        You haven't joined any group tickets yet.
-      </Card>
+      <EmptyState
+        icon={Users}
+        title="No groups yet"
+        description="Pool funds with other players to chase bigger jackpots together. Browse open syndicates to join one in seconds."
+        primary={{ label: "Browse groups", to: "/syndicates", icon: Compass }}
+        secondary={{ label: "View lotteries", to: "/lotteries", icon: Ticket }}
+      />
     );
   }
   return (
