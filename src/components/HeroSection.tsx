@@ -101,19 +101,7 @@ const HeroSection = () => {
             isTransitioning ? "translate-y-4 opacity-0" : "translate-y-0 opacity-100"
           }`}
         >
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5">
-            <slide.badge.icon className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-primary">
-              <span>{slide.badge.text}</span>
-              {slide.badge.amount != null && slide.badge.currency ? (
-                <DisplayPrice
-                  amount={slide.badge.amount}
-                  sourceCurrency={slide.badge.currency}
-                  className="text-sm font-medium text-primary"
-                />
-              ) : null}
-            </span>
-          </div>
+          <HeroBadge {...slide.badge} />
 
           <h1 className="mb-6 font-heading text-5xl font-extrabold leading-[1.1] tracking-tight lg:text-7xl">
             {slide.heading[0]}
