@@ -60,9 +60,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .select("*")
             .eq("user_id", existing.user.id)
             .maybeSingle()
-            .then(({ data }) => setProfile(data as Profile | null))
-            .catch(() => {
-              /* profile fetch failure is non-fatal */
+            .then(({ data, error }) => {
+              if (error) {
+                /* profile fetch failure is non-fatal */
+                return;
+              }
+              setProfile(data as Profile | null);
             });
         }
       })
