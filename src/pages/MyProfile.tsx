@@ -308,10 +308,33 @@ const MyProfile = () => {
               <GroupsTab userId={data.user_id} />
             </TabsContent>
             <TabsContent value="followers" className="mt-6">
-              <UserList rows={followers.rows} loading={followers.loading} emptyText="No followers yet" />
+              <UserList
+                rows={followers.rows}
+                loading={followers.loading}
+                empty={
+                  <EmptyState
+                    icon={UsersRound}
+                    title="No followers yet"
+                    description="Share posts, upload winning tickets, or invite friends so other players can find and follow you."
+                    primary={{ label: "Share a post", to: "/feed", icon: Sparkles }}
+                    secondary={{ label: "Find people", to: "/feed", icon: UserPlus }}
+                  />
+                }
+              />
             </TabsContent>
             <TabsContent value="following" className="mt-6">
-              <UserList rows={following.rows} loading={following.loading} emptyText="Not following anyone yet" />
+              <UserList
+                rows={following.rows}
+                loading={following.loading}
+                empty={
+                  <EmptyState
+                    icon={UserCheck}
+                    title="Not following anyone yet"
+                    description="Follow other players to see their wins, group joins, and tips in your feed."
+                    primary={{ label: "Discover players", to: "/feed", icon: Compass }}
+                  />
+                }
+              />
             </TabsContent>
             <TabsContent value="settings" className="mt-6 space-y-6">
               <Card className="space-y-6 p-6">
