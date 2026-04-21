@@ -226,6 +226,25 @@ const LotteryDetail = () => {
   const [lines, setLines] = useState(initial?.lines ?? 1);
   const [buying, setBuying] = useState(false);
 
+  // Persist picks + lines whenever they change. Empty selections clear
+  // the slot so we don't waste storage on a blank slate. Wrapped in a
+  // try/catch because Safari private mode can throw on setItem.
+  useEffect(() => {
+    if (!slug) return;
+    if (main.length === 0 && bonus.length === 0 && lines === 1) {
+      clearStoredPick(slug);
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        STORAGE_PREFIX + slug,
+        JSON.stringify({ main, bonus, lines, savedAt: Date.now() } satisfies StoredPick)
+      );
+    } catch {
+      /* ignore quota / private-mode errors */
+    }
+  }, [slug, main, bonus, lines]);
+
   // ----- Lottery + upcoming draw ---------------------------------
   const { data: lottery, isLoading } = useQuery({
     queryKey: ["lottery-detail", slug],
