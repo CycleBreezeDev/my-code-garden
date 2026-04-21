@@ -607,26 +607,52 @@ const LotteryDetail = () => {
                   )}
                 </div>
 
-                <div className="mb-5 space-y-2 border-t border-border pt-4">
+                {/* Live price breakdown — recomputes on every selection /
+                    line change because pricePerLine, lines, subtotal,
+                    discount and total are derived in render. */}
+                <div
+                  className="mb-5 space-y-2 border-t border-border pt-4"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Price per line</span>
-                    <span className="text-foreground">
+                    <span className="tabular-nums text-foreground">
                       {formatPrice(pricePerLine, currency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Lines</span>
-                    <span className="text-foreground">×{lines}</span>
+                    <span className="text-muted-foreground">
+                      Lines <span className="text-xs">×{lines}</span>
+                    </span>
+                    <span className="tabular-nums text-foreground">
+                      {formatPrice(subtotal, currency)}
+                    </span>
                   </div>
-                  {discount > 0 && (
+                  {discount > 0 ? (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Discount</span>
-                      <span className="text-primary">-{Math.round(discount * 100)}%</span>
+                      <span className="text-primary">
+                        Discount <span className="text-xs">({Math.round(discount * 100)}%)</span>
+                      </span>
+                      <span className="tabular-nums font-medium text-primary">
+                        −{formatPrice(+(subtotal - total).toFixed(2), currency)}
+                      </span>
+                    </div>
+                  ) : (
+                    // Surface the next discount tier so users see the value
+                    // of buying more lines without us being pushy about it.
+                    <div className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+                      <span>
+                        Add {5 - lines} more line{5 - lines === 1 ? "" : "s"} for 10% off
+                      </span>
+                      <span className="font-medium text-primary">10%</span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
-                    <span className="text-foreground">Total</span>
-                    <span className="text-primary">{formatPrice(total, currency)}</span>
+                  <div className="flex items-baseline justify-between border-t border-border pt-3">
+                    <span className="text-sm font-medium text-foreground">Total</span>
+                    <span className="font-heading text-2xl font-bold tabular-nums text-primary transition-all">
+                      {formatPrice(total, currency)}
+                    </span>
                   </div>
                 </div>
 
