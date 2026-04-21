@@ -107,7 +107,7 @@ export const AllocatedNumbersList = ({
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2 text-[11px] text-primary hover:text-primary"
-                  onClick={onVerify}
+                  onClick={() => onVerify(idx)}
                 >
                   <Eye className="mr-1 h-3 w-3" /> Verify
                 </Button>
