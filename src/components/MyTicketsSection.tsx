@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Upload, ImageIcon, Trash2, Ticket, Eye, EyeOff } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Ticket, Eye, EyeOff, ShieldCheck, Circle } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useMyPicks, type SyndicatePickRow } from "@/hooks/useSyndicatePicks";
 import { NumberBalls } from "@/components/syndicate/NumberBalls";
+import {
+  useTicketPickVerifications,
+  useToggleTicketPickVerification,
+} from "@/hooks/useTicketPickVerifications";
 
 type TicketImage = {
   id: string;
@@ -61,43 +65,97 @@ const MyNumbersOverlay = ({
   picks,
   color,
   highlightShareIndex,
+  ticketImageId,
+  syndicateId,
+  membershipId,
+  verifiedShareIndexes,
+  onToggle,
+  toggleBusy,
 }: {
   picks: SyndicatePickRow[];
   color: string;
   highlightShareIndex?: number | null;
-}) => (
-  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-    <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-primary">
-      My allocated lines ({picks.length})
-    </div>
-    <ul className="space-y-1.5">
-      {picks.map((p) => {
-        const isMatch = highlightShareIndex === p.share_index;
-        return (
-          <li
-            key={p.id}
-            className={
-              isMatch
-                ? "flex items-center gap-2 rounded-md bg-primary/15 px-2 py-1.5 ring-2 ring-primary animate-pulse"
-                : "flex items-center gap-2"
-            }
-          >
-            <span
+  ticketImageId: string;
+  syndicateId: string;
+  membershipId: string;
+  verifiedShareIndexes: Set<number>;
+  onToggle: (shareIndex: number, next: boolean) => void;
+  toggleBusy: number | null;
+}) => {
+  const verifiedCount = picks.reduce(
+    (n, p) => (verifiedShareIndexes.has(p.share_index) ? n + 1 : n),
+    0
+  );
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary">
+          My allocated lines ({picks.length})
+        </span>
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+          <ShieldCheck className="h-3 w-3" />
+          {verifiedCount}/{picks.length} verified
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {picks.map((p) => {
+          const isMatch = highlightShareIndex === p.share_index;
+          const isVerified = verifiedShareIndexes.has(p.share_index);
+          const isBusy = toggleBusy === p.share_index;
+          return (
+            <li
+              key={p.id}
               className={
                 isMatch
-                  ? "text-[10px] font-mono font-bold text-primary w-12 shrink-0"
-                  : "text-[10px] font-mono text-muted-foreground w-12 shrink-0"
+                  ? "flex flex-wrap items-center gap-2 rounded-md bg-primary/15 px-2 py-1.5 ring-2 ring-primary animate-pulse"
+                  : "flex flex-wrap items-center gap-2"
               }
             >
-              #{p.share_index}
-            </span>
-            <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
-          </li>
-        );
-      })}
-    </ul>
-  </div>
-);
+              <span
+                className={
+                  isMatch
+                    ? "text-[10px] font-mono font-bold text-primary w-12 shrink-0"
+                    : "text-[10px] font-mono text-muted-foreground w-12 shrink-0"
+                }
+              >
+                #{p.share_index}
+              </span>
+              <NumberBalls main={p.main_numbers} bonus={p.bonus_numbers} color={color} size="sm" />
+              <button
+                type="button"
+                onClick={() => onToggle(p.share_index, !isVerified)}
+                disabled={isBusy}
+                aria-pressed={isVerified}
+                aria-label={
+                  isVerified
+                    ? `Mark share ${p.share_index} as unverified on this scan`
+                    : `Mark share ${p.share_index} as verified on this scan`
+                }
+                title={isVerified ? "Verified — click to undo" : "Tick to confirm these numbers appear on the scan"}
+                className={`ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-colors disabled:opacity-60 ${
+                  isVerified
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                {isBusy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : isVerified ? (
+                  <ShieldCheck className="h-3 w-3" />
+                ) : (
+                  <Circle className="h-3 w-3" />
+                )}
+                {isVerified ? "Verified" : "Verify"}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {/* Required to silence unused-prop lint when nothing changes */}
+      <span hidden aria-hidden data-image={ticketImageId} data-syn={syndicateId} data-mem={membershipId} />
+    </div>
+  );
+};
 
 const SyndicateTickets = ({
   syndicate,
@@ -145,6 +203,54 @@ const SyndicateTickets = ({
     (p) => p.main_numbers.length > 0 && (p.status === "included" || p.status === "quick_picked")
   );
   const lotteryColor = syndicate.lottery_color || "hsl(var(--primary))";
+
+  // Per-user verification rows for every ticket image in this syndicate
+  const { data: verifications } = useTicketPickVerifications(syndicate.id);
+  const verifyMutation = useToggleTicketPickVerification();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  // image_id -> Set<share_index>
+  const verifiedByImage = useMemo(() => {
+    const m = new Map<string, Set<number>>();
+    for (const v of verifications ?? []) {
+      const set = m.get(v.ticket_image_id) ?? new Set<number>();
+      set.add(v.share_index);
+      m.set(v.ticket_image_id, set);
+    }
+    return m;
+  }, [verifications]);
+
+  const handleToggle = (
+    ticketImageId: string,
+    shareIndex: number,
+    verified: boolean
+  ) => {
+    const key = `${ticketImageId}:${shareIndex}`;
+    setBusyKey(key);
+    verifyMutation.mutate(
+      {
+        ticketImageId,
+        syndicateId: syndicate.id,
+        membershipId: syndicate.membership_id,
+        shareIndex,
+        verified,
+      },
+      {
+        onSuccess: () => {
+          toast.success(verified ? "Marked verified" : "Verification removed");
+        },
+        onError: (e: Error) => {
+          if (/relation .* does not exist/i.test(e.message)) {
+            toast.error("Verification table not deployed yet — apply the latest migration.");
+          } else {
+            toast.error(e.message);
+          }
+        },
+        onSettled: () => setBusyKey(null),
+      }
+    );
+  };
+
 
   const deleteMutation = useMutation({
     mutationFn: async (img: TicketImage) => {
@@ -274,6 +380,16 @@ const SyndicateTickets = ({
                   picks={myAllocated}
                   color={lotteryColor}
                   highlightShareIndex={highlightShareIndex}
+                  ticketImageId={img.id}
+                  syndicateId={syndicate.id}
+                  membershipId={syndicate.membership_id}
+                  verifiedShareIndexes={verifiedByImage.get(img.id) ?? new Set<number>()}
+                  onToggle={(shareIndex, next) => handleToggle(img.id, shareIndex, next)}
+                  toggleBusy={
+                    busyKey?.startsWith(`${img.id}:`)
+                      ? Number(busyKey.split(":")[1])
+                      : null
+                  }
                 />
               )}
             </div>
