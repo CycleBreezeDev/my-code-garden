@@ -6,12 +6,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FeedCard } from "@/components/social/FeedCard";
 import type { FeedItem } from "@/hooks/useFeed";
 
+interface MyPostsTabProps {
+  /**
+   * Current handle for the signed-in user. Passed in (rather than queried
+   * locally) so a username change in Settings re-renders this tab and the
+   * post-author links pick up the new `/u/<handle>` immediately.
+   */
+  username: string | null;
+}
+
 /**
  * Lists ONLY the signed-in user's own feed posts (system events + manual).
  * We can't reuse `user_feed` because it returns the follower-graph timeline,
  * so we hit `feed_posts` directly and stitch the same shape `FeedCard` expects.
  */
-export const MyPostsTab = () => {
+export const MyPostsTab = ({ username }: MyPostsTabProps) => {
   const { user, profile } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,20 +29,13 @@ export const MyPostsTab = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [{ data: posts }, { data: pub }] = await Promise.all([
-        supabase
-          .from("feed_posts")
-          .select("id, user_id, kind, body, metadata, likes_count, comments_count, created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase
-          .from("user_profiles_public")
-          .select("username")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
-      const username = (pub as any)?.username ?? null;
+      const { data: posts } = await supabase
+        .from("feed_posts")
+        .select("id, user_id, kind, body, metadata, likes_count, comments_count, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
       const ids = (posts ?? []).map((p: any) => p.id);
       let likedSet = new Set<string>();
       if (ids.length) {
@@ -65,7 +67,8 @@ export const MyPostsTab = () => {
       setLoading(false);
     };
     load();
-  }, [user, profile]);
+    // `username` is in the dep list so a rename re-stamps every card's link.
+  }, [user, profile, username]);
 
   const toggleLike = async (postId: string, liked: boolean) => {
     if (!user) return;
