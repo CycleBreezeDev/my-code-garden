@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Users, Ticket, Shield, ArrowRight, CheckCircle, TrendingUp, HelpCircle, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +22,7 @@ import { LuckyPicksEditor } from "@/components/syndicate/LuckyPicksEditor";
 import { MyPicksCard } from "@/components/syndicate/MyPicksCard";
 import MyTicketsSection from "@/components/MyTicketsSection";
 import { parseFormat, type LuckyPick, type NumberFormat } from "@/lib/numberFormat";
-import { useRef } from "react";
+
 
 const faqs = [
   { q: "Do I pick my own numbers?", a: "It's optional. Each share you buy gives you one Lucky Pick line we'll add to the group's ticket bundle. Skip it and we use a Quick Pick. Either way, prizes are split 50/50." },
