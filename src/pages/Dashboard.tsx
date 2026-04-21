@@ -21,6 +21,9 @@ type PickMatch = {
   main_match_count: number | null;
   bonus_match_count: number | null;
   matched_at: string | null;
+  main_numbers?: number[];
+  bonus_numbers?: number[];
+  status?: SyndicatePickRow["status"];
 };
 
 type Membership = {
@@ -58,7 +61,7 @@ const Dashboard = () => {
     queryFn: async (): Promise<Membership[]> => {
       const { data, error } = await supabase
         .from("syndicate_memberships")
-        .select("id, shares, amount_paid, created_at, payment_reference, syndicate:syndicates!inner(id, slug, name, total_shares, sold_shares, currency, draw:lottery_draws!inner(draw_date, lottery:lotteries!inner(name))), picks:syndicate_picks(id, share_index, main_match_count, bonus_match_count, matched_at)")
+        .select("id, shares, amount_paid, created_at, payment_reference, syndicate:syndicates!inner(id, slug, name, total_shares, sold_shares, currency, draw:lottery_draws!inner(draw_date, lottery:lotteries!inner(name, color))), picks:syndicate_picks(id, share_index, main_numbers, bonus_numbers, status, main_match_count, bonus_match_count, matched_at)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as unknown as Membership[]) ?? [];
