@@ -93,7 +93,14 @@ const VerifyEmail = () => {
       title: "Email verified",
       description: user ? "Signing you in…" : "You can now sign in.",
     });
-    const t = window.setTimeout(() => navigate(target, { replace: true }), 800);
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.removeItem(VERIFIED_FLAG_KEY);
+      } catch {
+        // ignore
+      }
+      navigate(target, { replace: true });
+    }, 800);
     return () => window.clearTimeout(t);
   }, [user, authLoading, verifiedExternally, navigate]);
 
