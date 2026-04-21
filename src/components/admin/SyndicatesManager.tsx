@@ -697,6 +697,157 @@ export const SyndicatesManager = () => {
         </div>
       </div>
 
+      <Dialog
+        open={importOpen}
+        onOpenChange={(o) => {
+          if (!importBusy) setImportOpen(o);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import syndicates from provider draws</DialogTitle>
+            <DialogDescription>
+              Upcoming draws without a syndicate yet. Selected entries will be created as
+              open group tickets so they appear on the public Group Tickets page.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Default total shares</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={importDefaults.total_shares}
+                  onChange={(e) =>
+                    setImportDefaults((p) => ({ ...p, total_shares: e.target.value }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Default price / share</Label>
+                <Input
+                  type="number"
+                  min={0.01}
+                  step="0.01"
+                  value={importDefaults.price_per_share}
+                  onChange={(e) =>
+                    setImportDefaults((p) => ({
+                      ...p,
+                      price_per_share: e.target.value,
+                    }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-secondary/20">
+              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="syn-import-all"
+                    checked={
+                      !!importable &&
+                      importable.length > 0 &&
+                      importable.every((d) => importSelected[d.id])
+                    }
+                    onCheckedChange={(v) => toggleAllImport(!!v)}
+                  />
+                  <Label htmlFor="syn-import-all" className="text-xs">
+                    Select all ({importable?.length ?? 0})
+                  </Label>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => refetchImportable()}
+                  disabled={importableLoading}
+                  className="h-7 px-2 text-xs"
+                >
+                  <RefreshCw
+                    className={`mr-1 h-3 w-3 ${importableLoading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto p-2">
+                {importableLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : !importable || importable.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    No upcoming draws available to import. Create draws first under{" "}
+                    <strong>Draw Results</strong>.
+                  </div>
+                ) : (
+                  <ul className="space-y-1">
+                    {importable.map((d) => {
+                      const id = `syn-import-${d.id}`;
+                      return (
+                        <li
+                          key={d.id}
+                          className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+                        >
+                          <Checkbox
+                            id={id}
+                            checked={!!importSelected[d.id]}
+                            onCheckedChange={(v) =>
+                              setImportSelected((p) => ({ ...p, [d.id]: !!v }))
+                            }
+                          />
+                          <Label
+                            htmlFor={id}
+                            className="flex flex-1 cursor-pointer items-center justify-between text-xs"
+                          >
+                            <span className="truncate font-medium text-foreground">
+                              {d.lottery.name}
+                            </span>
+                            <span className="ml-2 shrink-0 text-muted-foreground">
+                              {new Date(d.draw_date).toLocaleString()} · {d.currency}
+                            </span>
+                          </Label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(false)}
+              disabled={importBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={importBusy || !importable || importable.length === 0}
+              className="bg-primary text-primary-foreground"
+            >
+              {importBusy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Import selected
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={deleteOpen}
         onOpenChange={(o) => {
