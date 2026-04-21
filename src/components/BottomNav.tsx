@@ -56,6 +56,19 @@ const isItemActive = (pathname: string, item: Item): boolean => {
 export const BottomNav = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // When the route changes to "/" with #how-it-works, smooth-scroll once
+  // the section has rendered (handles cross-page FAQ navigation).
+  useEffect(() => {
+    if (location.pathname === "/" && location.hash === "#how-it-works") {
+      // Wait one frame so the home page sections are mounted.
+      const id = window.requestAnimationFrame(() => {
+        smoothScrollToId("how-it-works");
+      });
+      return () => window.cancelAnimationFrame(id);
+    }
+  }, [location.pathname, location.hash]);
 
   const items: Item[] = [
     {
