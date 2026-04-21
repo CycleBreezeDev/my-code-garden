@@ -10,6 +10,7 @@ import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./social/NotificationBell";
 import { MessagesPeek } from "./messaging/MessagesPeek";
 import { ThemeToggle } from "./ThemeToggle";
+import { CurrencySwitcher } from "./CurrencySwitcher";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -68,6 +69,7 @@ const Navbar = () => {
                   {unreadContacts > 99 ? "99+" : unreadContacts}
                 </Link>
               )}
+              <CurrencySwitcher />
               <WalletPill />
               <MessagesPeek />
               <NotificationBell />
@@ -76,6 +78,7 @@ const Navbar = () => {
             </>
           ) : (
             <>
+              <CurrencySwitcher />
               <ThemeToggle />
               <Link to="/login">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">Sign In</Button>
@@ -88,6 +91,7 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
+          <CurrencySwitcher />
           <ThemeToggle />
           <button
             className="rounded-lg p-2 text-foreground transition-colors hover:bg-secondary"
