@@ -24,6 +24,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CreateDrawCard from "./CreateDrawCard";
 
 type DrawRow = {
   id: string;
@@ -246,6 +247,9 @@ export const DrawsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Create new draw */}
+      <CreateDrawCard />
+
       {/* Lottery feeds refresh */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
