@@ -16,6 +16,7 @@ import {
   Home,
   Loader2,
   Settings2,
+  Users,
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +41,8 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Operations",
     items: [
-      { to: "/admin/draws", label: "Draw Results", icon: Trophy },
+      { to: "/admin/draws", label: "Draws", icon: Trophy },
+      { to: "/admin/syndicates", label: "Syndicates", icon: Users },
       { to: "/admin/syndicate-picks", label: "Lucky Picks", icon: ListChecks },
       { to: "/admin/withdrawals", label: "Withdrawals", icon: Wallet },
       { to: "/admin/withdrawal-configs", label: "Payout Configs", icon: Settings2 },

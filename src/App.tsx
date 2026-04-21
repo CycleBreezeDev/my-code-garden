@@ -18,6 +18,7 @@ import PaymentCallback from "./pages/PaymentCallback.tsx";
 import Admin from "./pages/Admin.tsx";
 import AdminLayout from "./components/admin/AdminLayout";
 import DrawsManager from "./components/admin/DrawsManager";
+import SyndicatesManager from "./components/admin/SyndicatesManager";
 import { WithdrawalsManager } from "./components/admin/WithdrawalsManager";
 import { WithdrawalConfigsManager } from "./components/admin/WithdrawalConfigsManager";
 import { FxPairsManager } from "./components/admin/FxPairsManager";
@@ -90,6 +91,7 @@ const App = () => (
             >
               <Route index element={<Admin />} />
               <Route path="draws" element={<DrawsManager />} />
+              <Route path="syndicates" element={<SyndicatesManager />} />
               <Route path="syndicate-picks" element={<SyndicatePicksManager />} />
               <Route path="withdrawals" element={<WithdrawalsManager />} />
               <Route path="withdrawal-configs" element={<WithdrawalConfigsManager />} />
