@@ -104,6 +104,7 @@ const NumberPad = ({
   selected,
   onToggle,
   color,
+  disabled = false,
 }: {
   label: string;
   min: number;
@@ -112,10 +113,12 @@ const NumberPad = ({
   selected: number[];
   onToggle: (n: number) => void;
   color: string;
+  /** When true, every number button is non-interactive (e.g. during purchase). */
+  disabled?: boolean;
 }) => {
   const numbers = useMemo(() => range(min, max), [min, max]);
   return (
-    <div>
+    <div aria-busy={disabled}>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           {label} ({min}–{max})
@@ -124,16 +127,17 @@ const NumberPad = ({
           {selected.length}/{required}
         </span>
       </div>
-      <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-10">
+      <div className={`grid grid-cols-7 gap-1.5 sm:grid-cols-10 ${disabled ? "opacity-60" : ""}`}>
         {numbers.map((n) => {
           const isSelected = selected.includes(n);
           const isFull = selected.length >= required && !isSelected;
+          const isDisabled = disabled || isFull;
           return (
             <button
               key={n}
               type="button"
               onClick={() => onToggle(n)}
-              disabled={isFull}
+              disabled={isDisabled}
               aria-pressed={isSelected}
               className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                 isSelected
@@ -402,6 +406,7 @@ const LotteryDetail = () => {
                     selected={main}
                     onToggle={toggleMain}
                     color={color}
+                    disabled={buying}
                   />
                 </div>
 
@@ -415,12 +420,18 @@ const LotteryDetail = () => {
                       selected={bonus}
                       onToggle={toggleBonus}
                       color={color}
+                      disabled={buying}
                     />
                   </div>
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={handleQuickPick} variant="outline" className="border-border">
+                  <Button
+                    onClick={handleQuickPick}
+                    variant="outline"
+                    className="border-border"
+                    disabled={buying}
+                  >
                     <Sparkles className="mr-1.5 h-4 w-4" />
                     Quick Pick
                   </Button>
@@ -428,7 +439,7 @@ const LotteryDetail = () => {
                     onClick={handleClear}
                     variant="outline"
                     className="border-border"
-                    disabled={main.length === 0 && bonus.length === 0}
+                    disabled={buying || (main.length === 0 && bonus.length === 0)}
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
                     Clear All
@@ -531,7 +542,7 @@ const LotteryDetail = () => {
                     <button
                       type="button"
                       onClick={() => setLines((n) => Math.max(1, n - 1))}
-                      disabled={lines <= 1}
+                      disabled={buying || lines <= 1}
                       aria-label="Decrease lines"
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
                     >
@@ -543,7 +554,7 @@ const LotteryDetail = () => {
                     <button
                       type="button"
                       onClick={() => setLines((n) => Math.min(50, n + 1))}
-                      disabled={lines >= 50}
+                      disabled={buying || lines >= 50}
                       aria-label="Increase lines"
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
                     >
