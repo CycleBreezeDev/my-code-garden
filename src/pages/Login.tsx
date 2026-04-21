@@ -52,7 +52,13 @@ const Login = () => {
     const { error } = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: `${window.location.origin}${from}`,
     });
-    if (error) toast({ title: "OAuth failed", description: error.message, variant: "destructive" });
+    if (error) {
+      const label = provider === "google" ? "Google" : "Apple";
+      const msg = /not enabled|provider .* disabled|unsupported/i.test(error.message)
+        ? `${label} sign-in isn't enabled yet. The site owner needs to enable it in Cloud → Users → Sign in methods.`
+        : error.message;
+      toast({ title: `${label} sign-in failed`, description: msg, variant: "destructive" });
+    }
   };
 
   return (
