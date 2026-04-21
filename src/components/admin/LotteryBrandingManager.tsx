@@ -20,7 +20,6 @@ type LotteryRow = {
   icon: string | null;
   draw_days: string | null;
   logo_url: string | null;
-  number_format: unknown;
 };
 
 type Draft = {
@@ -53,10 +52,10 @@ const LotteryBrandingManager = () => {
     queryFn: async (): Promise<LotteryRow[]> => {
       const { data, error } = await supabase
         .from("lotteries")
-        .select("id, slug, name, description, country, color, icon, draw_days, logo_url, number_format")
+        .select("id, slug, name, description, country, color, icon, draw_days, logo_url")
         .order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as LotteryRow[];
     },
   });
 
@@ -71,7 +70,7 @@ const LotteryBrandingManager = () => {
       color: l.color ?? "",
       icon: l.icon ?? "",
       draw_days: l.draw_days ?? "",
-      format: parseFormat(l.number_format),
+      format: parseFormat(undefined),
     });
   };
 
@@ -101,7 +100,6 @@ const LotteryBrandingManager = () => {
           color: draft.color.trim() || null,
           icon: draft.icon.trim() || null,
           draw_days: draft.draw_days.trim() || null,
-          number_format: draft.format as unknown as never,
         })
         .eq("id", selected.id);
       if (error) throw error;

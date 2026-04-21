@@ -16,6 +16,18 @@ import VerifyEmail from "./pages/VerifyEmail.tsx";
 import GroupTicketDetail from "./pages/GroupTicketDetail.tsx";
 import PaymentCallback from "./pages/PaymentCallback.tsx";
 import Admin from "./pages/Admin.tsx";
+import AdminLayout from "./components/admin/AdminLayout";
+import DrawsManager from "./components/admin/DrawsManager";
+import { WithdrawalsManager } from "./components/admin/WithdrawalsManager";
+import { WithdrawalConfigsManager } from "./components/admin/WithdrawalConfigsManager";
+import { FxPairsManager } from "./components/admin/FxPairsManager";
+import { KycManager } from "./components/admin/KycManager";
+import { SocialReports } from "./components/admin/SocialReports";
+import SyndicatePicksManager from "./components/admin/SyndicatePicksManager";
+import LotteryBrandingManager from "./components/admin/LotteryBrandingManager";
+import ContactSubmissions from "./components/admin/ContactSubmissions";
+import SecretsAudit from "./components/admin/SecretsAudit";
+import GitHubSyncStatus from "./components/admin/GitHubSyncStatus";
 import Kyc from "./pages/Kyc.tsx";
 import Contact from "./pages/Contact.tsx";
 import Terms from "./pages/Terms.tsx";
@@ -72,10 +84,23 @@ const App = () => (
               path="/admin"
               element={
                 <ProtectedRoute>
-                  <Admin />
+                  <AdminLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<Admin />} />
+              <Route path="draws" element={<DrawsManager />} />
+              <Route path="syndicate-picks" element={<SyndicatePicksManager />} />
+              <Route path="withdrawals" element={<WithdrawalsManager />} />
+              <Route path="withdrawal-configs" element={<WithdrawalConfigsManager />} />
+              <Route path="fx" element={<FxPairsManager />} />
+              <Route path="lotteries" element={<LotteryBrandingManager />} />
+              <Route path="contact" element={<ContactSubmissions />} />
+              <Route path="kyc" element={<KycManager />} />
+              <Route path="reports" element={<SocialReports />} />
+              <Route path="secrets" element={<SecretsAudit />} />
+              <Route path="github" element={<GitHubSyncStatus />} />
+            </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
