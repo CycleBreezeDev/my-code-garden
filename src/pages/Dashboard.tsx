@@ -1,6 +1,7 @@
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles } from "lucide-react";
+import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,8 @@ import MyTicketsSection from "@/components/MyTicketsSection";
 import MyPayoutsSection from "@/components/MyPayoutsSection";
 import { WalletCard } from "@/components/wallet/WalletCard";
 import { TransactionsList } from "@/components/wallet/TransactionsList";
+import { AllocatedNumbersList } from "@/components/syndicate/AllocatedNumbersList";
+import type { SyndicatePickRow } from "@/hooks/useSyndicatePicks";
 
 type PickMatch = {
   id: string;
@@ -18,6 +21,9 @@ type PickMatch = {
   main_match_count: number | null;
   bonus_match_count: number | null;
   matched_at: string | null;
+  main_numbers?: number[];
+  bonus_numbers?: number[];
+  status?: SyndicatePickRow["status"];
 };
 
 type Membership = {
@@ -35,7 +41,7 @@ type Membership = {
     currency: string;
     draw: {
       draw_date: string;
-      lottery: { name: string };
+      lottery: { name: string; color: string | null };
     };
   };
   picks?: PickMatch[];
@@ -49,13 +55,15 @@ const formatCountdown = (s: number) => {
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
   const { data: memberships, isLoading } = useQuery({
     queryKey: ["my-memberships", user?.id],
     queryFn: async (): Promise<Membership[]> => {
       const { data, error } = await supabase
         .from("syndicate_memberships")
-        .select("id, shares, amount_paid, created_at, payment_reference, syndicate:syndicates!inner(id, slug, name, total_shares, sold_shares, currency, draw:lottery_draws!inner(draw_date, lottery:lotteries!inner(name))), picks:syndicate_picks(id, share_index, main_match_count, bonus_match_count, matched_at)")
+        .select("id, shares, amount_paid, created_at, payment_reference, syndicate:syndicates!inner(id, slug, name, total_shares, sold_shares, currency, draw:lottery_draws!inner(draw_date, lottery:lotteries!inner(name, color))), picks:syndicate_picks(id, share_index, main_numbers, bonus_numbers, status, main_match_count, bonus_match_count, matched_at)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as unknown as Membership[]) ?? [];
@@ -190,6 +198,52 @@ const Dashboard = () => {
                           <span className="text-[11px] text-muted-foreground">
                             ({matched.length} winning line{matched.length > 1 ? "s" : ""})
                           </span>
+                        </div>
+                      );
+                    })()}
+
+                    {(() => {
+                      const allocated = (m.picks ?? []).filter(
+                        (p) => (p.main_numbers?.length ?? 0) > 0
+                      );
+                      if (allocated.length === 0) return null;
+                      const isOpen = !!expanded[m.id];
+                      const rows: SyndicatePickRow[] = allocated.map((p) => ({
+                        id: p.id,
+                        syndicate_id: m.syndicate.id,
+                        membership_id: m.id,
+                        user_id: user?.id ?? "",
+                        share_index: p.share_index,
+                        main_numbers: p.main_numbers ?? [],
+                        bonus_numbers: p.bonus_numbers ?? [],
+                        status: p.status ?? "included",
+                        created_at: m.created_at,
+                        updated_at: m.created_at,
+                      }));
+                      return (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => toggle(m.id)}
+                            className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary/30 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary/40 transition-colors"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              My numbers ({allocated.length} line{allocated.length > 1 ? "s" : ""})
+                            </span>
+                            {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          </button>
+                          {isOpen && (
+                            <div className="mt-2">
+                              <AllocatedNumbersList
+                                shares={m.shares}
+                                picks={rows}
+                                color={m.syndicate.draw.lottery.color || undefined}
+                                showVerifyAction={false}
+                              />
+                            </div>
+                          )}
                         </div>
                       );
                     })()}

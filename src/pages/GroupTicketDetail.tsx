@@ -20,7 +20,9 @@ import { Wallet as WalletIcon, Sparkles, Info } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LuckyPicksEditor } from "@/components/syndicate/LuckyPicksEditor";
 import { MyPicksCard } from "@/components/syndicate/MyPicksCard";
+import MyTicketsSection from "@/components/MyTicketsSection";
 import { parseFormat, type LuckyPick, type NumberFormat } from "@/lib/numberFormat";
+import { useRef } from "react";
 
 const faqs = [
   { q: "Do I pick my own numbers?", a: "It's optional. Each share you buy gives you one Lucky Pick line we'll add to the group's ticket bundle. Skip it and we use a Quick Pick. Either way, prizes are split 50/50." },
@@ -91,6 +93,10 @@ const GroupTicketDetail = () => {
   const [picksOpen, setPicksOpen] = useState(false);
   const [picks, setPicks] = useState<LuckyPick[]>([]);
   const [myMembershipId, setMyMembershipId] = useState<string | null>(null);
+  const ticketsRef = useRef<HTMLDivElement | null>(null);
+  const scrollToTickets = () => {
+    ticketsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["syndicate", slug],
@@ -297,12 +303,21 @@ const GroupTicketDetail = () => {
               {membership && (
                 <MyPicksCard
                   membershipId={membership.id}
+                  syndicateId={group.id}
                   shares={membership.shares}
                   format={numberFormat}
                   drawDate={group.draw.draw_date}
                   picksLockOffsetMinutes={group.picks_lock_offset_minutes ?? 120}
                   syndicateName={group.name}
+                  lotteryColor={color}
+                  onVerifyOnTicket={scrollToTickets}
                 />
+              )}
+
+              {membership && (
+                <div ref={ticketsRef} id="ticket-scans">
+                  <MyTicketsSection syndicateFilter={group.id} highlightSyndicateId={group.id} />
+                </div>
               )}
             </div>
 

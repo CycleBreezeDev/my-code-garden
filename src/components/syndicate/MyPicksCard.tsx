@@ -1,33 +1,43 @@
-import { useEffect, useState } from "react";
-import { Loader2, Sparkles, Save, Lock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Sparkles, Save, Lock, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LuckyPicksEditor } from "./LuckyPicksEditor";
+import { AllocatedNumbersList } from "./AllocatedNumbersList";
 import {
   useMyPicks,
   useUpsertPicks,
   computeLockState,
 } from "@/hooks/useSyndicatePicks";
+import { useSyndicateTicketImages } from "@/hooks/useSyndicateTicketImages";
 import { type NumberFormat, type LuckyPick, validatePick } from "@/lib/numberFormat";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
   membershipId: string;
+  syndicateId?: string;
   shares: number;
   format: NumberFormat;
   drawDate: string;
   picksLockOffsetMinutes: number;
   syndicateName: string;
+  lotteryColor?: string;
+  /** Called when "Verify on ticket" is clicked — typically scrolls to the ticket scans section. */
+  onVerifyOnTicket?: () => void;
 }
 
 export const MyPicksCard = ({
   membershipId,
+  syndicateId,
   shares,
   format,
   drawDate,
   picksLockOffsetMinutes,
   syndicateName,
+  lotteryColor,
+  onVerifyOnTicket,
 }: Props) => {
   const { data: existing, isLoading } = useMyPicks(membershipId);
+  const { data: ticketImages } = useSyndicateTicketImages(syndicateId);
   const upsert = useUpsertPicks();
   const [draft, setDraft] = useState<LuckyPick[]>([]);
 
@@ -48,8 +58,17 @@ export const MyPicksCard = ({
 
   const { locked, locksAt } = computeLockState(drawDate, picksLockOffsetMinutes);
 
+  const summary = useMemo(() => {
+    const rows = existing ?? [];
+    const yours = rows.filter((p) => p.status === "included").length;
+    const quick = rows.filter((p) => p.status === "quick_picked").length;
+    const pending = shares - yours - quick;
+    return { yours, quick, pending: Math.max(0, pending) };
+  }, [existing, shares]);
+
+  const verifiedCount = ticketImages?.length ?? 0;
+
   const handleSave = async () => {
-    // Validate every non-empty pick
     const cleaned = draft.filter((p) => p.main.length > 0 || p.bonus.length > 0);
     for (const p of cleaned) {
       const err = validatePick(p, format);
@@ -81,9 +100,13 @@ export const MyPicksCard = ({
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="font-heading text-base font-bold text-foreground">My Lucky Picks</h3>
+            <h3 className="font-heading text-base font-bold text-foreground">
+              {locked ? "My Allocated Numbers" : "My Lucky Picks"}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Optional · 1 line per share · added to the group's bundle
+              {locked
+                ? "Final numbers locked in for this draw — verify against the scanned tickets below."
+                : "Optional · 1 line per share · added to the group's bundle"}
             </p>
           </div>
         </div>
@@ -104,26 +127,72 @@ export const MyPicksCard = ({
         <div className="flex justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
+      ) : locked ? (
+        <>
+          {/* Summary strip */}
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-lg border border-border bg-secondary/30 p-2.5 text-center">
+              <div className="font-heading text-lg font-bold text-foreground">{shares}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Lines</div>
+            </div>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-center">
+              <div className="font-heading text-lg font-bold text-primary">{summary.yours}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Your picks</div>
+            </div>
+            <div className="rounded-lg border border-border bg-secondary/30 p-2.5 text-center">
+              <div className="font-heading text-lg font-bold text-foreground">{summary.quick}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Quick Picks</div>
+            </div>
+            <div
+              className={`rounded-lg border p-2.5 text-center ${
+                verifiedCount > 0
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-secondary/30 text-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1 font-heading text-sm font-bold">
+                {verifiedCount > 0 ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Verified
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" /> Pending
+                  </>
+                )}
+              </div>
+              <div className="text-[10px] uppercase tracking-wide">
+                {verifiedCount > 0 ? `${verifiedCount} scan${verifiedCount > 1 ? "s" : ""}` : "No scans yet"}
+              </div>
+            </div>
+          </div>
+
+          <AllocatedNumbersList
+            shares={shares}
+            picks={existing ?? []}
+            color={lotteryColor}
+            onVerify={onVerifyOnTicket}
+            showVerifyAction={!!onVerifyOnTicket}
+          />
+        </>
       ) : (
         <>
           <fieldset disabled={locked} className={locked ? "opacity-60 pointer-events-none" : ""}>
             <LuckyPicksEditor shares={shares} format={format} picks={draft} onChange={setDraft} />
           </fieldset>
 
-          {!locked && (
-            <Button
-              onClick={handleSave}
-              disabled={upsert.isPending}
-              className="mt-4 w-full bg-primary text-primary-foreground"
-            >
-              {upsert.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              Save Lucky Picks
-            </Button>
-          )}
+          <Button
+            onClick={handleSave}
+            disabled={upsert.isPending}
+            className="mt-4 w-full bg-primary text-primary-foreground"
+          >
+            {upsert.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Save Lucky Picks
+          </Button>
         </>
       )}
     </div>
