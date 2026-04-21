@@ -14,6 +14,11 @@ export type SyndicatePickRow = {
   status: "pending" | "included" | "quick_picked";
   created_at: string;
   updated_at: string;
+  // Populated by the score_picks_for_draw trigger after a draw is published.
+  // Null until the draw result lands.
+  main_match_count?: number | null;
+  bonus_match_count?: number | null;
+  matched_at?: string | null;
 };
 
 export const useMyPicks = (membershipId: string | undefined) => {
