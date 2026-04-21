@@ -59,6 +59,7 @@ const Lotteries = () => {
                     logoUrl={getLogo(lottery)}
                     slug={lottery.slug}
                     nextDrawDay={draw ? dayName(draw.draw_date) : undefined}
+                    nextDrawAt={draw ? draw.draw_date : undefined}
                     countdownSeconds={draw ? secondsUntil(draw.draw_date) : 0}
                   />
                 );
