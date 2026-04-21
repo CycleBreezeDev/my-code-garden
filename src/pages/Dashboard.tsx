@@ -55,6 +55,8 @@ const formatCountdown = (s: number) => {
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
   const { data: memberships, isLoading } = useQuery({
     queryKey: ["my-memberships", user?.id],
