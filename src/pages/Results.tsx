@@ -54,7 +54,21 @@ const Results = () => {
           ) : (
             <div className="space-y-4">
               {results?.length === 0 && (
-                <div className="text-center py-20 text-muted-foreground">No results yet.</div>
+                <Card className="flex flex-col items-center justify-center gap-4 py-16 px-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Trophy className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="font-heading text-lg font-semibold text-foreground">No results yet</h2>
+                    <p className="max-w-sm text-sm text-muted-foreground">
+                      Draw results will appear here as soon as the next draw is published.
+                    </p>
+                  </div>
+                  <Button onClick={() => refetch()} disabled={isFetching} variant="outline" className="gap-2">
+                    {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    {isFetching ? "Refreshing…" : "Try again"}
+                  </Button>
+                </Card>
               )}
               {results?.map((result) => {
                 const lottery = result.draw.lottery;
