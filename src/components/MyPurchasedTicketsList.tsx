@@ -42,16 +42,16 @@ type PurchasedTicket = {
 const STATUS_STYLES: Record<PurchasedTicket["status"], { label: string; className: string }> = {
   active: { label: "Active", className: "bg-primary/10 text-primary" },
   drawn: { label: "Drawn", className: "bg-secondary text-foreground" },
-  won: { label: "Won", className: "bg-emerald-500/15 text-emerald-500" },
+  won: { label: "Won", className: "bg-primary text-primary-foreground" },
   lost: { label: "Lost", className: "bg-muted text-muted-foreground" },
-  refunded: { label: "Refunded", className: "bg-amber-500/15 text-amber-500" },
+  refunded: { label: "Refunded", className: "bg-muted text-muted-foreground border border-border" },
   cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive" },
 };
 
 const SCANNER_STYLES: Record<PurchasedTicket["scanner_status"], { label: string; className: string } | null> = {
   pending: { label: "Scan pending", className: "bg-muted text-muted-foreground" },
   uploaded: { label: "Scan uploaded", className: "bg-primary/10 text-primary" },
-  verified: { label: "Scan verified", className: "bg-emerald-500/15 text-emerald-500" },
+  verified: { label: "Scan verified", className: "bg-primary text-primary-foreground" },
   failed: { label: "Scan failed", className: "bg-destructive/10 text-destructive" },
 };
 
@@ -168,7 +168,7 @@ const TicketRow = ({ t }: { t: PurchasedTicket }) => {
       </div>
 
       {t.status === "refunded" && (
-        <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-1.5 text-[11px] text-amber-500">
+        <div className="mt-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground">
           Refunded
           {t.refunded_at
             ? ` ${new Date(t.refunded_at).toLocaleDateString(undefined, {
