@@ -94,7 +94,7 @@ const Results = () => {
                           <h3 className="text-sm font-semibold text-foreground">{result.draw.lottery.name}</h3>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                             <Calendar className="h-3 w-3" />
-                            {new Date(result.draw.draw_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            {formatDrawDate(result.draw.draw_date, "dateOnly")}
                           </div>
                         </div>
                       </div>
