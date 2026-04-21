@@ -155,6 +155,7 @@ export type Database = {
           amount_paid: number
           created_at: string
           id: string
+          payment_reference: string | null
           shares: number
           syndicate_id: string
           user_id: string
@@ -163,6 +164,7 @@ export type Database = {
           amount_paid: number
           created_at?: string
           id?: string
+          payment_reference?: string | null
           shares: number
           syndicate_id: string
           user_id: string
@@ -171,6 +173,7 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           id?: string
+          payment_reference?: string | null
           shares?: number
           syndicate_id?: string
           user_id?: string
@@ -242,6 +245,15 @@ export type Database = {
     Functions: {
       join_syndicate: {
         Args: { _shares: number; _syndicate_id: string }
+        Returns: string
+      }
+      join_syndicate_for_user: {
+        Args: {
+          _reference: string
+          _shares: number
+          _syndicate_id: string
+          _user_id: string
+        }
         Returns: string
       }
     }
