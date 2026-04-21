@@ -115,10 +115,10 @@ const Login = () => {
 
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Password</label>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 focus-within:border-primary">
                 <Lock className="h-4 w-4 text-muted-foreground" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -126,6 +126,15 @@ const Login = () => {
                   autoComplete="current-password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
