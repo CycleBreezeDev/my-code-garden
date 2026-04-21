@@ -120,6 +120,14 @@ export const SyndicatesManager = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [importOpen, setImportOpen] = useState(false);
+  const [importSelected, setImportSelected] = useState<Record<string, boolean>>({});
+  const [importBusy, setImportBusy] = useState(false);
+  const [importDefaults, setImportDefaults] = useState({
+    total_shares: "100",
+    price_per_share: "5",
+  });
+
   const { data: syndicates, isLoading } = useQuery({
     queryKey: ["admin-syndicates"],
     queryFn: async (): Promise<SyndicateRow[]> => {
