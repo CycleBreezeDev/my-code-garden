@@ -402,9 +402,14 @@ export const SyndicatesManager = () => {
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-foreground">Existing syndicates</h2>
-            <Button onClick={startNew} size="sm" variant="outline">
-              <Plus className="mr-1.5 h-4 w-4" /> New
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={openImport} size="sm" variant="outline">
+                <Download className="mr-1.5 h-4 w-4" /> Import
+              </Button>
+              <Button onClick={startNew} size="sm" variant="outline">
+                <Plus className="mr-1.5 h-4 w-4" /> New
+              </Button>
+            </div>
           </div>
           {isLoading ? (
             <div className="flex justify-center py-6">
