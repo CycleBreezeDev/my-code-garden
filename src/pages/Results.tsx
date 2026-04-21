@@ -1,9 +1,11 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2, RefreshCw, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getColor, getIcon, getLogo, formatJackpot } from "@/lib/lotteryAssets";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 type ResultRow = {
   id: string;
