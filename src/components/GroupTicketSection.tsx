@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName } from "@/lib/lotteryAssets";
+import { DisplayPrice } from "@/components/DisplayPrice";
 
 type SyndicateRow = {
   id: string;
@@ -164,7 +165,9 @@ const GroupTicketSection = () => {
                     <div className="mb-3">
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-muted-foreground">{group.sold_shares}/{group.total_shares} members</span>
-                        <span className="font-semibold text-primary">{formatPrice(Number(group.price_per_share), group.currency)}/share</span>
+                        <span className="font-semibold text-primary">
+                          <DisplayPrice amount={Number(group.price_per_share)} sourceCurrency={group.currency} />/share
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-secondary overflow-hidden">
                         <div

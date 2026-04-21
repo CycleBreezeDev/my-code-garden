@@ -5,6 +5,7 @@ import { Users, ArrowRight, Star, Shield, Eye, Ticket, SlidersHorizontal, Loader
 import { Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { getColor, getLogo, formatJackpot, formatPrice, secondsUntil, dayName } from "@/lib/lotteryAssets";
+import { DisplayPrice } from "@/components/DisplayPrice";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,7 +188,9 @@ const Syndicates = () => {
                       <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">{group.sold_shares}/{group.total_shares} members</span>
-                          <span className="font-semibold text-primary">{formatPrice(group.price_per_share, group.currency)}/share</span>
+                          <span className="font-semibold text-primary">
+                            <DisplayPrice amount={group.price_per_share} sourceCurrency={group.currency} />/share
+                          </span>
                         </div>
                         <div className="h-2 rounded-full bg-secondary overflow-hidden">
                           <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(group.sold_shares / group.total_shares) * 100}%` }} />
