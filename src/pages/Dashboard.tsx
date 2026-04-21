@@ -1,6 +1,7 @@
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles } from "lucide-react";
+import { Ticket, Users, Trophy, Wallet, Clock, ArrowUpRight, Bell, Loader2, Receipt, CheckCircle2, Copy, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,8 @@ import MyTicketsSection from "@/components/MyTicketsSection";
 import MyPayoutsSection from "@/components/MyPayoutsSection";
 import { WalletCard } from "@/components/wallet/WalletCard";
 import { TransactionsList } from "@/components/wallet/TransactionsList";
+import { AllocatedNumbersList } from "@/components/syndicate/AllocatedNumbersList";
+import type { SyndicatePickRow } from "@/hooks/useSyndicatePicks";
 
 type PickMatch = {
   id: string;
