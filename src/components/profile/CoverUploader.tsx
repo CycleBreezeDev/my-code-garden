@@ -1,25 +1,38 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ImageCropDialog } from "./ImageCropDialog";
 
 interface CoverUploaderProps {
   currentUrl: string | null;
   onChange: (newUrl: string | null) => Promise<void> | void;
 }
 
+// 3:1 banner — wide enough for hero, short enough to leave room for the
+// avatar overlap. Output 1500×500 keeps things crisp on retina without
+// blowing up storage.
+const COVER_ASPECT = 3;
+const COVER_OUTPUT_WIDTH = 1500;
+
 /**
- * Cover/banner picker — uploads to the same public `avatars` bucket but under
- * `<auth.uid()>/cover-<ts>.<ext>` so a single storage policy covers both.
+ * Cover/banner picker — opens a 3:1 center-crop dialog (with zoom/pan) before
+ * uploading to the public `avatars` bucket under
+ * `<auth.uid()>/cover-<ts>.jpg`.
  */
 export const CoverUploader = ({ currentUrl, onChange }: CoverUploaderProps) => {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
 
-  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => () => {
+    if (pendingSrc) URL.revokeObjectURL(pendingSrc);
+  }, [pendingSrc]);
+
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !user) return;
@@ -27,16 +40,20 @@ export const CoverUploader = ({ currentUrl, onChange }: CoverUploaderProps) => {
       toast.error("Please pick an image file");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Cover must be under 8 MB");
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Cover must be under 15 MB");
       return;
     }
+    setPendingSrc(URL.createObjectURL(file));
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (!user) return;
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${user.id}/cover-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+    const path = `${user.id}/cover-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, {
       upsert: false,
-      contentType: file.type,
+      contentType: "image/jpeg",
     });
     if (upErr) {
       toast.error(upErr.message);
@@ -46,20 +63,15 @@ export const CoverUploader = ({ currentUrl, onChange }: CoverUploaderProps) => {
     const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
     await onChange(pub.publicUrl);
     setUploading(false);
+    setPendingSrc(null);
     toast.success("Cover updated");
   };
 
   return (
     <div className="space-y-3">
-      <div
-        className="relative h-32 w-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20"
-      >
+      <div className="relative h-32 w-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20">
         {currentUrl && (
-          <img
-            src={currentUrl}
-            alt="Cover banner preview"
-            className="h-full w-full object-cover"
-          />
+          <img src={currentUrl} alt="Cover banner preview" className="h-full w-full object-cover" />
         )}
       </div>
       <input
@@ -96,6 +108,18 @@ export const CoverUploader = ({ currentUrl, onChange }: CoverUploaderProps) => {
           </Button>
         )}
       </div>
+      <ImageCropDialog
+        open={!!pendingSrc}
+        imageSrc={pendingSrc}
+        aspect={COVER_ASPECT}
+        cropShape="rect"
+        outputWidth={COVER_OUTPUT_WIDTH}
+        title="Position your cover"
+        description="Drag to recenter and use the slider to zoom. The banner uses a 3:1 ratio."
+        busy={uploading}
+        onCancel={() => setPendingSrc(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 };
