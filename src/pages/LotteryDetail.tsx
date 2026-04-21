@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  Download,
   Loader2,
   Minus,
   Plus,
@@ -44,6 +45,7 @@ import {
   quickPick,
   type NumberFormat,
 } from "@/lib/numberFormat";
+import { downloadTicketReceipt } from "@/lib/ticketReceipt";
 
 // ----------------------------------------------------------------
 // Data
@@ -961,6 +963,31 @@ const LotteryDetail = () => {
               </div>
 
               <DialogFooter className="flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    downloadTicketReceipt({
+                      ticketId: confirmation.ticketId,
+                      lotteryName: lottery.name,
+                      drawDate: confirmation.drawDate,
+                      main: confirmation.main,
+                      bonus: confirmation.bonus,
+                      lines: confirmation.lines,
+                      pricePerLine: confirmation.pricePerLine,
+                      discount: confirmation.discount,
+                      total: confirmation.total,
+                      currency: confirmation.currency,
+                      paymentReference: confirmation.paymentReference,
+                      buyerEmail: user?.email ?? null,
+                      brandColor: color,
+                    });
+                    toast.success("Receipt downloaded");
+                  }}
+                >
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Download receipt
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full sm:w-auto"
