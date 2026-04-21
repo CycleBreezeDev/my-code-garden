@@ -86,13 +86,15 @@ const HeroSection = () => {
             className="h-full w-full object-cover"
             {...(i === 0 ? {} : { loading: "lazy" as const })}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/50" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60" />
+          {/* Left fade — heavier in light mode so text stays legible. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/40 dark:via-background/90 dark:to-background/50" />
+          {/* Top/bottom fade — keeps the image from fighting the headline. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-background/70 dark:via-transparent dark:to-background/60" />
         </div>
       ))}
 
-      {/* Decorative */}
-      <div className="absolute right-[12%] top-[18%] h-80 w-80 rounded-full bg-primary/8 blur-[120px] z-[1]" />
+      {/* Warm decorative glow — intensified in light mode for warmth. */}
+      <div className="absolute right-[12%] top-[18%] h-80 w-80 rounded-full bg-primary/15 blur-[120px] z-[1] dark:bg-primary/8" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-start justify-center px-6 py-28 lg:py-36">

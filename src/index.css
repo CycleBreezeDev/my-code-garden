@@ -6,53 +6,71 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 228 50% 8%;
+    /* Slightly warm off-white instead of pure paper — pure white made
+       cards disappear and gradients look chalky. */
+    --background: 36 30% 98%;
+    --foreground: 228 45% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 228 50% 8%;
+    --card-foreground: 228 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 228 50% 8%;
+    --popover-foreground: 228 45% 12%;
 
-    --primary: 38 60% 45%;
-    --primary-foreground: 0 0% 100%;
+    /* Brighter, more saturated gold — old 45% lightness read as muddy. */
+    --primary: 38 78% 50%;
+    --primary-foreground: 228 50% 8%;
+    --primary-glow: 42 90% 65%;
 
-    --secondary: 220 15% 94%;
-    --secondary-foreground: 228 50% 8%;
+    --secondary: 36 25% 93%;
+    --secondary-foreground: 228 45% 12%;
 
-    --muted: 220 15% 96%;
-    --muted-foreground: 228 12% 40%;
+    --muted: 36 25% 95%;
+    --muted-foreground: 228 12% 38%;
 
-    --accent: 38 60% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 38 78% 50%;
+    --accent-foreground: 228 50% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 52%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 38 60% 45%;
+    --border: 228 15% 88%;
+    --input: 228 15% 88%;
+    --ring: 38 78% 50%;
 
     --radius: 0.75rem;
 
-    --gold: 38 60% 45%;
-    --gold-light: 42 65% 60%;
-    --gold-dark: 36 55% 35%;
-    --surface: 220 15% 97%;
-    --surface-hover: 220 15% 93%;
+    /* Gold ramp tuned for light mode: punchier highlight, deeper shadow. */
+    --gold: 38 78% 50%;
+    --gold-light: 44 90% 62%;
+    --gold-dark: 32 70% 38%;
+
+    --surface: 36 30% 96%;
+    --surface-hover: 36 25% 92%;
+
+    /* Reusable gradients used by hero, CTA, and card backgrounds. */
+    --gradient-hero: radial-gradient(ellipse at top left, hsl(38 80% 92% / 0.6), transparent 55%),
+                     radial-gradient(ellipse at bottom right, hsl(228 60% 92% / 0.5), transparent 60%),
+                     hsl(var(--background));
+    --gradient-gold: linear-gradient(135deg, hsl(var(--gold-light)), hsl(var(--gold)) 55%, hsl(var(--gold-dark)));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(36 30% 97%));
+
+    /* Warmer, softer shadows for light surfaces. */
+    --shadow-card: 0 1px 2px hsl(228 30% 20% / 0.04), 0 4px 16px hsl(228 30% 20% / 0.06);
+    --shadow-elevated: 0 4px 12px hsl(228 30% 20% / 0.08), 0 12px 32px hsl(228 30% 20% / 0.10);
+    --shadow-gold: 0 8px 24px hsl(var(--gold) / 0.25);
 
     --font-heading: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 228 50% 8%;
-    --sidebar-primary: 38 60% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 94%;
-    --sidebar-accent-foreground: 228 50% 8%;
-    --sidebar-border: 220 15% 88%;
-    --sidebar-ring: 38 60% 45%;
+    --sidebar-background: 36 30% 98%;
+    --sidebar-foreground: 228 45% 12%;
+    --sidebar-primary: 38 78% 50%;
+    --sidebar-primary-foreground: 228 50% 8%;
+    --sidebar-accent: 36 25% 93%;
+    --sidebar-accent-foreground: 228 45% 12%;
+    --sidebar-border: 228 15% 88%;
+    --sidebar-ring: 38 78% 50%;
   }
 
   .dark {
@@ -67,6 +85,7 @@
 
     --primary: 40 55% 58%;
     --primary-foreground: 228 50% 6%;
+    --primary-glow: 42 70% 70%;
 
     --secondary: 228 30% 15%;
     --secondary-foreground: 220 15% 85%;
@@ -89,6 +108,16 @@
     --gold-dark: 38 50% 42%;
     --surface: 228 40% 10%;
     --surface-hover: 228 35% 14%;
+
+    /* Dark-mode gradient + shadow tokens (mirror the light-mode set). */
+    --gradient-hero: radial-gradient(ellipse at top left, hsl(40 55% 20% / 0.35), transparent 55%),
+                     radial-gradient(ellipse at bottom right, hsl(228 60% 15% / 0.5), transparent 60%),
+                     hsl(var(--background));
+    --gradient-gold: linear-gradient(135deg, hsl(var(--gold-light)), hsl(var(--gold)) 55%, hsl(var(--gold-dark)));
+    --gradient-card: linear-gradient(180deg, hsl(228 40% 11%), hsl(228 40% 9%));
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3), 0 4px 16px hsl(0 0% 0% / 0.25);
+    --shadow-elevated: 0 4px 12px hsl(0 0% 0% / 0.4), 0 12px 32px hsl(0 0% 0% / 0.35);
+    --shadow-gold: 0 8px 24px hsl(var(--gold) / 0.35);
 
     --sidebar-background: 228 40% 8%;
     --sidebar-foreground: 220 15% 80%;
@@ -123,7 +152,7 @@
 @layer utilities {
   .text-gradient-gold {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--gold-light)), hsl(var(--gold)), hsl(var(--gold-dark)));
+    background-image: var(--gradient-gold);
   }
 
   .glow-gold {
@@ -136,5 +165,31 @@
 
   .bg-surface-hover {
     background-color: hsl(var(--surface-hover));
+  }
+
+  /* Reusable gradients — keep hero and CTA sections themed in both modes. */
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+
+  .bg-gradient-card {
+    background-image: var(--gradient-card);
+  }
+
+  .bg-gradient-gold {
+    background-image: var(--gradient-gold);
+  }
+
+  /* Themed shadow utilities. */
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
   }
 }

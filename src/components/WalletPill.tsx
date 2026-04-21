@@ -15,7 +15,11 @@ export const WalletPill = () => {
     <>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full bg-secondary/60 px-3 text-foreground hover:bg-secondary">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-primary/15 hover:shadow-md dark:border-transparent dark:bg-secondary/60 dark:hover:bg-secondary"
+          >
             <WalletIcon className="h-4 w-4 text-primary" />
             <span className="font-semibold text-sm">
               {primary ? formatMoney(primary.available_balance, primary.currency) : "$0.00"}
