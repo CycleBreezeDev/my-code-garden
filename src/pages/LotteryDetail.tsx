@@ -328,7 +328,43 @@ const LotteryDetail = () => {
     setBuying(false);
 
     if (error) {
-      toast.error(error.message);
+      // Map known PostgreSQL `RAISE EXCEPTION` strings from wallet_buy_ticket
+      // into friendly, actionable toasts. Anything unmatched falls through
+      // to a generic message with the raw text in the description.
+      const raw = error.message ?? "";
+      const lower = raw.toLowerCase();
+
+      if (lower.includes("insufficient wallet balance")) {
+        toast.error("Not enough funds", {
+          description: `Top up your ${currency} wallet to cover ${formatPrice(total, currency)}.`,
+          action: { label: "Add funds", onClick: () => navigate("/wallet/add-funds") },
+        });
+      } else if (lower.includes("wallet not found")) {
+        toast.error(`No ${currency} wallet yet`, {
+          description: `Add funds to create your ${currency} wallet, then try again.`,
+          action: { label: "Add funds", onClick: () => navigate("/wallet/add-funds") },
+        });
+      } else if (lower.includes("draw has already closed") || lower.includes("not open for sale")) {
+        toast.error("This draw is closed", {
+          description: "Sales have ended for this draw. Pick the next one when it opens.",
+        });
+        // Refresh the lottery so the countdown / upcoming draw updates.
+        queryClient.invalidateQueries({ queryKey: ["lottery-detail", slug] });
+      } else if (lower.includes("draw not found")) {
+        toast.error("Draw unavailable", { description: "We couldn't find that draw — please refresh and try again." });
+        queryClient.invalidateQueries({ queryKey: ["lottery-detail", slug] });
+      } else if (lower.includes("lottery is not active")) {
+        toast.error("Lottery paused", { description: "Ticket sales are paused for this lottery right now." });
+      } else if (lower.includes("invalid line count")) {
+        toast.error("Invalid quantity", { description: "Choose between 1 and 100 lines." });
+      } else if (lower.includes("main numbers are required") || lower.includes("invalid pick")) {
+        toast.error("Invalid pick", { description: "Re-select your numbers and try again." });
+      } else if (lower.includes("not authenticated")) {
+        toast.error("Please sign in", { description: "Your session expired — sign in to continue." });
+        navigate("/login");
+      } else {
+        toast.error("Couldn't complete purchase", { description: raw || "Please try again in a moment." });
+      }
       return;
     }
     toast.success("Ticket purchased! 🎟️", {
