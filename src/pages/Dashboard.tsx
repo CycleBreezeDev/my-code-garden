@@ -13,6 +13,7 @@ import MyPayoutsSection from "@/components/MyPayoutsSection";
 import { WalletCard } from "@/components/wallet/WalletCard";
 import { TransactionsList } from "@/components/wallet/TransactionsList";
 import { AllocatedNumbersList } from "@/components/syndicate/AllocatedNumbersList";
+import { LuckyPickMatchBanner, type MatchedPickSummary } from "@/components/syndicate/LuckyPickMatchBanner";
 import type { SyndicatePickRow } from "@/hooks/useSyndicatePicks";
 
 type PickMatch = {
@@ -74,6 +75,49 @@ const Dashboard = () => {
   const totalShares = memberships?.reduce((s, m) => s + m.shares, 0) ?? 0;
   const totalSpent = memberships?.reduce((s, m) => s + Number(m.amount_paid), 0) ?? 0;
 
+  // Surface the user's best Lucky Pick result for the most recently scored draw.
+  // We pick the highest-matching pick across all memberships, tie-breaking by:
+  //   main matches → bonus matches → most recently scored.
+  // The banner is hidden entirely when no draw has been scored yet.
+  const matchSummary: MatchedPickSummary | null = (() => {
+    if (!memberships) return null;
+    type Candidate = MatchedPickSummary & { _ts: number };
+    let best: Candidate | null = null;
+    let totalScored = 0;
+    let notable = 0;
+    for (const m of memberships) {
+      for (const p of m.picks ?? []) {
+        if (!p.matched_at) continue;
+        totalScored += 1;
+        const main = p.main_match_count ?? 0;
+        const bonus = p.bonus_match_count ?? 0;
+        if (main >= 2) notable += 1;
+        const candidate: Candidate = {
+          syndicateName: m.syndicate.name,
+          syndicateSlug: m.syndicate.slug,
+          drawDate: m.syndicate.draw.draw_date,
+          shareIndex: p.share_index,
+          mainMatches: main,
+          bonusMatches: bonus,
+          matchedAt: p.matched_at,
+          totalPicksScored: 0,
+          notablePickCount: 0,
+          _ts: new Date(p.matched_at).getTime(),
+        };
+        if (
+          !best ||
+          candidate.mainMatches > best.mainMatches ||
+          (candidate.mainMatches === best.mainMatches && candidate.bonusMatches > best.bonusMatches) ||
+          (candidate.mainMatches === best.mainMatches && candidate.bonusMatches === best.bonusMatches && candidate._ts > best._ts)
+        ) {
+          best = candidate;
+        }
+      }
+    }
+    if (!best || totalScored === 0) return null;
+    return { ...best, totalPicksScored: totalScored, notablePickCount: notable };
+  })();
+
   const stats = [
     { label: "Active Shares", value: totalShares.toString(), icon: Ticket, change: `${memberships?.length ?? 0} groups` },
     { label: "Syndicates", value: (memberships?.length ?? 0).toString(), icon: Users, change: "joined" },
@@ -126,9 +170,9 @@ const Dashboard = () => {
             ))}
           </div>
 
+          <LuckyPickMatchBanner summary={matchSummary} />
+
           <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-foreground">My Syndicates</h2>
               <Link to="/syndicates">
                 <Button variant="ghost" size="sm" className="text-primary text-xs">Browse more</Button>
               </Link>
