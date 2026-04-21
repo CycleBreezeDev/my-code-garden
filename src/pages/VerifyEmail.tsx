@@ -137,12 +137,31 @@ const VerifyEmail = () => {
     );
   }
 
+  const startCooldown = (seconds: number) => {
+    const until = Date.now() + seconds * 1000;
+    setCooldownUntil(until);
+    setNow(Date.now());
+    try {
+      if (email) localStorage.setItem(cooldownKey(email), String(until));
+    } catch {
+      // localStorage may be unavailable (private mode) — in-memory state still
+      // enforces the cooldown for this tab.
+    }
+  };
+
   const handleResend = async () => {
     if (!email) {
       toast({
         title: "Enter your email",
         description: "Type the address you signed up with so we can resend the link.",
         variant: "destructive",
+      });
+      return;
+    }
+    if (isCoolingDown) {
+      toast({
+        title: "Hold on a moment",
+        description: `You can request another email in ${remainingSeconds}s.`,
       });
       return;
     }
@@ -154,9 +173,16 @@ const VerifyEmail = () => {
     });
     setResending(false);
     if (error) {
+      // Honor server-side rate-limit hints when present (e.g. "for security
+      // purposes, you can only request this after 47 seconds").
+      const match = /after (\d+)\s*seconds?/i.exec(error.message);
+      if (match) {
+        startCooldown(Math.min(Number(match[1]), 300));
+      }
       toast({ title: "Couldn't resend", description: error.message, variant: "destructive" });
       return;
     }
+    startCooldown(RESEND_COOLDOWN_SECONDS);
     toast({
       title: "Confirmation sent",
       description: `Check ${email} (and spam) for the activation link.`,
