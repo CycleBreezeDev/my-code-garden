@@ -102,14 +102,30 @@ const MyNumbersOverlay = ({
 const SyndicateTickets = ({
   syndicate,
   defaultExpanded = false,
+  highlightShareIndex = null,
+  onHighlightConsumed,
 }: {
   syndicate: SyndicateLite;
   defaultExpanded?: boolean;
+  highlightShareIndex?: number | null;
+  onHighlightConsumed?: () => void;
 }) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [matchMode, setMatchMode] = useState(defaultExpanded);
+  const firstScanRef = useRef<HTMLDivElement | null>(null);
+
+  // When parent asks us to highlight a share, force match-mode + scroll into view.
+  useEffect(() => {
+    if (highlightShareIndex == null) return;
+    setMatchMode(true);
+    requestAnimationFrame(() => {
+      firstScanRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => onHighlightConsumed?.(), 3500);
+    return () => clearTimeout(t);
+  }, [highlightShareIndex, onHighlightConsumed]);
 
   const { data: images, isLoading } = useQuery({
     queryKey: ["ticket-images", syndicate.id],
