@@ -10,7 +10,7 @@ import heroSlide3 from "@/assets/hero-slide-3.jpg";
 const slides = [
   {
     image: heroSlide1,
-    badge: { icon: Sparkles, text: "Next Powerball Draw: $850M — 2d 14h" },
+    badge: { icon: Sparkles, text: "Next Powerball Draw: ", amount: 850000000, currency: "USD" },
     heading: ["Play the World's", "Biggest Lotteries"],
     description: "Real tickets for Powerball, Mega Millions, EuroMillions & more. Save up to 20% with multi-draw packages.",
     cta: { label: "Browse Lotteries", href: "/lotteries" },
@@ -18,7 +18,7 @@ const slides = [
   },
   {
     image: heroSlide2,
-    badge: { icon: Trophy, text: "Over $2 Billion in Jackpots Available" },
+    badge: { icon: Trophy, text: "Over $2 Billion in Jackpots Available", amount: null, currency: null },
     heading: ["Win Life-Changing", "Jackpots Today"],
     description: "From $1 million to $1 billion — play for the world's largest prizes from anywhere. 100% real tickets, scanned & verified.",
     cta: { label: "Play Now", href: "/lotteries" },
@@ -26,7 +26,7 @@ const slides = [
   },
   {
     image: heroSlide3,
-    badge: { icon: Users, text: "50/50 Syndicate — Pool & Win Together" },
+    badge: { icon: Users, text: "50/50 Syndicate — Pool & Win Together", amount: null, currency: null },
     heading: ["Better Odds with", "Group Tickets"],
     description: "Join a syndicate, pool your tickets, and multiply your chances. 50% of winnings go to you, 50% shared among the group.",
     cta: { label: "Join a Group", href: "/syndicates" },
