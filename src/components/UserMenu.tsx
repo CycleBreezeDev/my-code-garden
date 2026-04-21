@@ -7,6 +7,7 @@ import {
   PlusCircle,
   ArrowDownCircle,
   ShieldCheck,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,10 @@ export const UserMenu = () => {
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem className={itemClass} onClick={() => navigate("/profile")}>
+            <UserCircle />
+            <span>My Profile</span>
+          </DropdownMenuItem>
           <DropdownMenuItem className={itemClass} onClick={() => navigate("/dashboard")}>
             <LayoutGrid />
             <span>Dashboard</span>

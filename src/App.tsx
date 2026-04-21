@@ -30,6 +30,7 @@ import MessagesPage from "./pages/Messages.tsx";
 import AddFunds from "./pages/AddFunds.tsx";
 import Withdraw from "./pages/Withdraw.tsx";
 import Transactions from "./pages/Transactions.tsx";
+import MyProfile from "./pages/MyProfile.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
 import { BottomNav } from "./components/BottomNav.tsx";
@@ -92,6 +93,7 @@ const App = () => (
             <Route path="/wallet/add-funds" element={<ProtectedRoute><AddFunds /></ProtectedRoute>} />
             <Route path="/wallet/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
             <Route path="/wallet/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

@@ -18,6 +18,7 @@ interface AuthContextValue {
   error: Error | null;
   retry: () => void;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -148,8 +149,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  // Re-fetch the `profiles` row for the current user. Called after the user
+  // edits their avatar / display name on /profile so the navbar reflects it
+  // without a full reload.
+  const refreshProfile = async () => {
+    if (!user) return;
+    const { data, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profileError) {
+      authLog.warn("AuthProvider.refreshProfile", "manual refresh failed", serializeError(profileError));
+      return;
+    }
+    setProfile(data as Profile | null);
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, error, retry, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, error, retry, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
