@@ -1,82 +1,83 @@
 
 
-## Goal
+## My Profile page (Twitter-style)
 
-Give every group-ticket member full visibility into the lottery numbers allocated to their shares — whether they self-picked or got operator-assigned Quick Picks — and let them manually verify those numbers against the official scanned ticket bundle.
+A dedicated authenticated route `/profile` linked from the User dropdown menu, presenting the signed-in user's identity in a Twitter-like layout (banner, avatar overlap, name/handle, bio, stats, tabbed content) with full self-service editing for avatar, name, username, bio, country, and password.
 
-## What the user will see
+### Route & navigation
+- New route `/profile` (protected) → `src/pages/MyProfile.tsx`.
+- Add a **"My Profile"** item to `UserMenu.tsx` (icon: `UserCircle`) above Dashboard.
+- Add a "View public profile" link from this page to `/u/:username` (existing `PublicProfile`).
 
-### 1. Upgraded "My Lucky Picks" card → "My Allocated Numbers"
-
-On `/group/:slug` (and `/dashboard`), the existing `MyPicksCard` becomes a two-mode card:
-
-- **Before lock** (current behavior, kept): editor for picking numbers per share, "Quick Pick" / "Clear" buttons, save.
-- **After lock** (new): read-only "Allocated Numbers" view showing one row per share with:
-  - Share number (Share 1, Share 2, …)
-  - The actual numbers as colored balls (main + bonus, matching lottery branding)
-  - Source badge: **"Your pick"** (green) or **"Quick Pick"** (muted) — driven by the existing `status` field (`included` vs `quick_picked`)
-  - A small **"Verify on ticket"** link that scrolls to / opens the matching official scan in the Ticket Images section
-  - A "Copy numbers" button (copies "07-12-19-25-33-41 + 04" style text)
-
-### 2. New "Allocated to me" summary strip
-
-Above the per-share list:
-- Total lines allocated, how many self-picked vs Quick Pick
-- "Verified ✓" indicator once at least one ticket image has been uploaded for the draw
-- Lock countdown / "Picks locked" pill (already exists, kept)
-
-### 3. Manual verification flow
-
-In the existing **Ticket Images** section (already member-visible via `ticket_images` table) we add a **"Match my numbers"** toggle. When on, each uploaded ticket scan is rendered with the user's allocated numbers listed beside it so they can eyeball-compare line by line against the printed ticket.
-
-### 4. Dashboard surface
-
-On `/dashboard` → "My Syndicates" each membership row gets a new collapsible **"My numbers (N lines)"** showing the same allocated-numbers list inline, so users don't have to open the group page to verify.
-
-## How it works (technical)
-
-### Data — already in place, no schema change needed
-
-- `syndicate_picks` already stores `main_numbers`, `bonus_numbers`, `status` per share, RLS scoped to owner.
-- `ticket_images` already stores official scans, RLS scoped to members.
-- `lotteries.number_format` already drives ball colors and ranges.
-
-### Backfill operator Quick Picks (one migration)
-
-When picks lock and the operator buys the bundle, every share that has no row (or an empty row) needs a deterministic Quick Pick stored so the user can see it. Add:
-
-- A migration adding `public.finalize_syndicate_picks(_syndicate_id uuid)` (admin / service-role only) that:
-  - Iterates every membership × share_index for the syndicate
-  - For any missing share, inserts a row using the existing `quick_pick_for_lottery()` function with `status = 'quick_picked'`
-  - For existing user picks, flips `status` from `pending` → `included`
-- Wire the existing admin "lock & buy" action (or a new admin button on the Syndicate admin panel) to call this RPC. If no admin trigger currently exists, add a small admin button "Finalize picks & assign Quick Picks" on `LotteryBrandingManager` / a new minimal admin card.
-
-### New components
+### Layout (Twitter-inspired)
 
 ```text
-src/components/syndicate/
-  MyPicksCard.tsx          (extended: editor when unlocked, read-only allocation view when locked)
-  AllocatedNumbersList.tsx (new: ball rendering, source badge, copy button)
-  NumberBalls.tsx          (new: reusable colored ball row)
+┌──────────────────────────────────────────────────┐
+│  Cover banner (gradient/upload, h-40)            │
+│                                                  │
+│  ┌────┐                            [Edit profile]│
+│  │AVA │  Full Name                               │
+│  └────┘  @username · 🇳🇬 Country                 │
+│          Bio line — joined Apr 2026              │
+│          234 Following · 1.2k Followers          │
+├──────────────────────────────────────────────────┤
+│ [Posts] [Tickets] [Groups] [Followers] [Following] [Settings] │
+├──────────────────────────────────────────────────┤
+│   …tab content…                                  │
+└──────────────────────────────────────────────────┘
 ```
 
-### Hook changes
+### Tabs (relevant to this lottery platform)
+1. **Posts** — the user's own `feed_posts` (joins, ticket uploads, payouts, manual posts), reusing `FeedCard`.
+2. **Tickets** — embeds existing `MyTicketsSection` (purchased lottery tickets).
+3. **Groups** — `syndicate_memberships` list (lottery name, draw date, shares, amount paid) — reuses the card style from `Dashboard`.
+4. **Followers** / **Following** — user lists (reuses the `UserList` pattern from `PublicProfile`) with `FollowButton`.
+5. **Settings** — inline panel with the edit forms below.
 
-`useMyPicks` already returns rows with `status` + numbers — no change needed. Add a tiny `useSyndicateTicketImages(syndicateId)` already used by `MyTicketsSection`; reused on the group page.
+### Settings tab — editable fields
+- **Avatar**: upload via new `avatars` storage bucket; preview, replace, remove. Updates `profiles.avatar_url`.
+- **Cover banner**: optional upload (same bucket, `covers/` prefix) → new `profiles.cover_url` column.
+- **Full name**: updates `profiles.full_name`.
+- **Username** (`@handle`): updates `user_profiles_public.username` with the existing 3–24 char regex; on change, links update automatically.
+- **Bio** (≤280 chars), **Country code** (ISO-2), **Public profile toggle** → `user_profiles_public`.
+- **Email**: shown read-only with a "Change email" button calling `supabase.auth.updateUser({ email })` (sends confirmation).
+- **Password change**: current-style form with new + confirm fields → `supabase.auth.updateUser({ password })`. Requires the user to be in an active session; show success toast.
+- **Notification prefs**: `email_digest_enabled` toggle (already in schema).
+- **Danger zone**: "Sign out everywhere" button (`supabase.auth.signOut({ scope: 'global' })`).
 
-### Files to edit
+All forms use **zod** + react-hook-form for validation, inline field errors, and disabled submit while saving.
 
-- `src/components/syndicate/MyPicksCard.tsx` — split into pre-lock editor and post-lock allocation view
-- `src/components/syndicate/AllocatedNumbersList.tsx` — new
-- `src/components/syndicate/NumberBalls.tsx` — new (small reusable ball renderer)
-- `src/pages/Dashboard.tsx` — add inline "My numbers" expander per membership
-- `src/components/MyTicketsSection.tsx` — add "Match my numbers" toggle that overlays the user's allocated lines next to each scan
-- `supabase/migrations/<new>.sql` — `finalize_syndicate_picks(uuid)` RPC + grant to admin role
-- `src/components/admin/SyndicatePicksManager.tsx` — add "Finalize picks" button calling the RPC (only if not already present)
+### Backend changes (one migration)
+1. **Storage bucket** `avatars` (public) with RLS:
+   - SELECT: anyone (public bucket).
+   - INSERT/UPDATE/DELETE: only when `(storage.foldername(name))[1] = auth.uid()::text` — each user writes only inside their own folder `avatars/<uid>/…`.
+2. **Add column** `profiles.cover_url TEXT NULL`.
+3. **Helper RPC** `my_profile_overview()` (SECURITY DEFINER, returns profile + public profile + counts) — optional convenience; otherwise the page does two parallel selects.
 
-## Out of scope
+### New / updated files
+- **Create**: `src/pages/MyProfile.tsx` (page + tabs orchestration).
+- **Create**: `src/components/profile/ProfileHeader.tsx` (banner, avatar, name, handle, stats, edit button).
+- **Create**: `src/components/profile/AvatarUploader.tsx` (drop zone + crop-to-square preview + storage upload).
+- **Create**: `src/components/profile/CoverUploader.tsx`.
+- **Create**: `src/components/profile/EditProfileDialog.tsx` (name/username/bio/country/public toggle in one modal — opened by header "Edit profile" button).
+- **Create**: `src/components/profile/AccountSettingsCard.tsx` (email change + password change + digest + sign-out-everywhere).
+- **Create**: `src/components/profile/MyPostsTab.tsx` (queries `feed_posts WHERE user_id = me`, reuses `FeedCard` shape).
+- **Create**: `src/hooks/useMyProfile.ts` (fetch + update helpers, invalidates `AuthContext` profile).
+- **Update**: `src/components/UserMenu.tsx` (add "My Profile" item + `UserCircle` icon).
+- **Update**: `src/App.tsx` (register `/profile` protected route).
+- **Update**: `src/contexts/AuthContext.tsx` (expose a `refreshProfile()` so edits reflect immediately in the navbar/menu).
+- **Migration**: `supabase/migrations/<ts>_my_profile.sql` — `avatars` bucket + storage policies + `profiles.cover_url` column.
 
-- Changing the 50/50 prize split logic
-- Changing how the operator actually buys tickets at the lottery operator
-- Auto-OCR of ticket scans (manual verification only, per request)
+### UX details
+- Header collapses gracefully on mobile (avatar shrinks to `h-20 w-20`, stats wrap).
+- Active tab synced with `?tab=` query param so refresh keeps the view.
+- Optimistic updates for avatar (immediate preview) with rollback on storage error.
+- All toasts via `sonner`; loading via `Loader2`.
+- Empty states for each tab ("No posts yet — share your first win", etc.).
+
+### Security
+- Password & email updates only via Supabase Auth client SDK (no custom RPC).
+- Storage policies scope writes to the user's own folder.
+- Username uniqueness enforced by existing DB constraint; client surfaces the friendly error.
+- No role/permission fields are editable from this page (admin elevation stays in `user_roles`).
 
