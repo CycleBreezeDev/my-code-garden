@@ -3,9 +3,11 @@ import Footer from "@/components/Footer";
 import { useFeed } from "@/hooks/useFeed";
 import { FeedCard } from "@/components/social/FeedCard";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw, Rss } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { useState } from "react";
 
 const Feed = () => {
   const { user, loading: authLoading } = useAuth();
