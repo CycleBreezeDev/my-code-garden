@@ -14,13 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      draw_results: {
+        Row: {
+          bonus_numbers: number[] | null
+          draw_id: string
+          id: string
+          jackpot_won: number | null
+          published_at: string
+          total_winners: number
+          winning_numbers: number[]
+        }
+        Insert: {
+          bonus_numbers?: number[] | null
+          draw_id: string
+          id?: string
+          jackpot_won?: number | null
+          published_at?: string
+          total_winners?: number
+          winning_numbers: number[]
+        }
+        Update: {
+          bonus_numbers?: number[] | null
+          draw_id?: string
+          id?: string
+          jackpot_won?: number | null
+          published_at?: string
+          total_winners?: number
+          winning_numbers?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draw_results_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: true
+            referencedRelation: "lottery_draws"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotteries: {
+        Row: {
+          country: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_key: string | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_key?: string | null
+          name: string
+          slug: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_key?: string | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      lottery_draws: {
+        Row: {
+          created_at: string
+          currency: string
+          draw_date: string
+          id: string
+          jackpot_amount: number
+          lottery_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          draw_date: string
+          id?: string
+          jackpot_amount?: number
+          lottery_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          draw_date?: string
+          id?: string
+          jackpot_amount?: number
+          lottery_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lottery_draws_lottery_id_fkey"
+            columns: ["lottery_id"]
+            isOneToOne: false
+            referencedRelation: "lotteries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      syndicate_memberships: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          id: string
+          shares: number
+          syndicate_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          id?: string
+          shares: number
+          syndicate_id: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          shares?: number
+          syndicate_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syndicate_memberships_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      syndicates: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          draw_id: string
+          id: string
+          name: string
+          price_per_share: number
+          slug: string
+          sold_shares: number
+          status: string
+          total_shares: number
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          draw_id: string
+          id?: string
+          name: string
+          price_per_share: number
+          slug: string
+          sold_shares?: number
+          status?: string
+          total_shares: number
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          draw_id?: string
+          id?: string
+          name?: string
+          price_per_share?: number
+          slug?: string
+          sold_shares?: number
+          status?: string
+          total_shares?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syndicates_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "lottery_draws"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      join_syndicate: {
+        Args: { _shares: number; _syndicate_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
