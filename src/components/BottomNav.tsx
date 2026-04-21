@@ -54,7 +54,7 @@ const isItemActive = (pathname: string, item: Item): boolean => {
  * already provides full navigation.
  */
 export const BottomNav = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -105,8 +105,20 @@ export const BottomNav = () => {
     },
   ];
 
-  // Don't render on auth screens — they have their own focused layout.
-  if (location.pathname === "/login" || location.pathname === "/register") return null;
+  // Hide on dedicated auth screens — they have their own focused layout.
+  const isAuthScreen =
+    location.pathname === "/login" ||
+    location.pathname === "/register" ||
+    location.pathname === "/verify-email" ||
+    location.pathname === "/reset-password";
+  if (isAuthScreen) return null;
+
+  // While auth is still resolving, suppress the nav so it doesn't flash
+  // during the redirect window (e.g. ProtectedRoute bouncing an
+  // unauthenticated user to /login, or the post-login redirect back to
+  // the originally requested page). Once `loading` flips to false the
+  // nav renders with the correct user state in a single paint.
+  if (authLoading) return null;
 
   return (
     <nav
