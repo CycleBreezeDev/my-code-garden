@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, ListChecks, Download, Check, Shuffle } from "lucide-react";
+import { Loader2, ListChecks, Download, Check, Shuffle, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 type SynRow = {
@@ -153,14 +153,40 @@ const SyndicatePicksManager = () => {
                     Lock offset: {selectedSyn.picks_lock_offset_minutes} min before draw
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={exportCsv}
-                  disabled={!picks || picks.length === 0}
-                >
-                  <Download className="mr-1 h-3.5 w-3.5" /> Export CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={async () => {
+                      const ok = window.confirm(
+                        "Finalize picks?\n\nThis will:\n• Promote all submitted user picks to 'included'\n• Backfill Quick Picks for any share without a pick\n\nRun this once the bundle is locked."
+                      );
+                      if (!ok) return;
+                      const { data, error } = await supabase.rpc("finalize_syndicate_picks", {
+                        _syndicate_id: selected,
+                      });
+                      if (error) {
+                        toast.error(error.message);
+                        return;
+                      }
+                      const r = (data ?? {}) as { promoted?: number; quick_picks_added?: number };
+                      toast.success(
+                        `Finalized · ${r.promoted ?? 0} promoted, ${r.quick_picks_added ?? 0} Quick Picks added`
+                      );
+                      qc.invalidateQueries({ queryKey: ["admin-picks", selected] });
+                    }}
+                  >
+                    <Wand2 className="mr-1 h-3.5 w-3.5" /> Finalize picks
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={exportCsv}
+                    disabled={!picks || picks.length === 0}
+                  >
+                    <Download className="mr-1 h-3.5 w-3.5" /> Export CSV
+                  </Button>
+                </div>
               </div>
 
               {picksLoading ? (
