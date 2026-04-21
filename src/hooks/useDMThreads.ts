@@ -116,5 +116,5 @@ export const useDMThreads = () => {
     return data as string;
   };
 
-  return { threads, unreadTotal, loading, openWith, refresh: fetchAll };
+  return { threads, unreadTotal, loading, error, openWith, refresh: fetchAll };
 };
