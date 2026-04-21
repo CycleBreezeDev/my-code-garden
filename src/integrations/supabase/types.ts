@@ -123,6 +123,67 @@ export type Database = {
           },
         ]
       }
+      payouts: {
+        Row: {
+          created_at: string
+          draw_id: string
+          gross_prize: number
+          id: string
+          membership_id: string
+          net_amount: number
+          platform_fee: number
+          shares: number
+          syndicate_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          draw_id: string
+          gross_prize: number
+          id?: string
+          membership_id: string
+          net_amount: number
+          platform_fee: number
+          shares: number
+          syndicate_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          draw_id?: string
+          gross_prize?: number
+          id?: string
+          membership_id?: string
+          net_amount?: number
+          platform_fee?: number
+          shares?: number
+          syndicate_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "lottery_draws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "syndicate_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -273,11 +334,39 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_syndicate_member: { Args: { _syndicate_id: string }; Returns: boolean }
       join_syndicate:
         | { Args: { _shares: number; _syndicate_id: string }; Returns: string }
@@ -298,9 +387,18 @@ export type Database = {
         }
         Returns: string
       }
+      publish_draw_results: {
+        Args: {
+          _bonus_numbers: number[]
+          _draw_id: string
+          _prizes: Json
+          _winning_numbers: number[]
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -427,6 +525,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
