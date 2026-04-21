@@ -45,6 +45,7 @@ import {
   quickPick,
   type NumberFormat,
 } from "@/lib/numberFormat";
+import { downloadTicketReceipt } from "@/lib/ticketReceipt";
 
 // ----------------------------------------------------------------
 // Data
