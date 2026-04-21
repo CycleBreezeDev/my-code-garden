@@ -5,6 +5,13 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const FLW_HASH = Deno.env.get("FLUTTERWAVE_WEBHOOK_HASH") ?? "";
 
 Deno.serve(async (req) => {
+  // GET /health — public liveness probe (no auth, no side effects)
+  if (req.method === "GET" && new URL(req.url).pathname.endsWith("/health")) {
+    return new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const sig = req.headers.get("verif-hash");
   if (sig !== FLW_HASH) return new Response("Invalid signature", { status: 401 });

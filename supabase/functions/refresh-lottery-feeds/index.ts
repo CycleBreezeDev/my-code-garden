@@ -76,6 +76,13 @@ async function scrapeLottery(url: string, apiKey: string) {
 }
 
 Deno.serve(async (req) => {
+  // GET /health — public liveness probe (no auth, no side effects)
+  if (req.method === "GET" && new URL(req.url).pathname.endsWith("/health")) {
+    return new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");

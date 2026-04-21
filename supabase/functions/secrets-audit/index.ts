@@ -36,6 +36,13 @@ const SECRET_GROUPS: { category: string; description: string; required: boolean;
 ];
 
 Deno.serve(async (req) => {
+  // GET /health — public liveness probe (no auth, no side effects)
+  if (req.method === "GET" && new URL(req.url).pathname.endsWith("/health")) {
+    return new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
