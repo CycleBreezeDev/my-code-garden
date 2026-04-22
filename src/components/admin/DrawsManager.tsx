@@ -10,6 +10,7 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CreateDrawCard from "./CreateDrawCard";
+import DrawEditCard from "./DrawEditCard";
 
 type DrawRow = {
   id: string;
@@ -82,6 +84,7 @@ export const DrawsManager = () => {
   >(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<ValidatedPayload | null>(null);
+  const [editingDrawId, setEditingDrawId] = useState<string | null>(null);
 
   const handleRefreshFeeds = async () => {
     setRefreshing(true);
@@ -296,6 +299,18 @@ export const DrawsManager = () => {
         )}
       </div>
 
+      {/* Inline draw editor (date / jackpot / currency / status / delete) */}
+      {(() => {
+        const editingDraw = draws?.find((d) => d.id === editingDrawId);
+        if (!editingDraw) return null;
+        return (
+          <DrawEditCard
+            draw={editingDraw}
+            onClose={() => setEditingDrawId(null)}
+          />
+        );
+      })()}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         {/* Draw picker */}
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -310,33 +325,58 @@ export const DrawsManager = () => {
                 const syndicateCount = d.syndicates?.length ?? 0;
                 const published = (d.draw_results?.length ?? 0) > 0;
                 const isSelected = d.id === selectedDrawId;
+                const isEditing = d.id === editingDrawId;
                 return (
-                  <button
+                  <div
                     key={d.id}
-                    onClick={() => {
-                      setSelectedDrawId(d.id);
-                      setPrizes({});
-                      setErrors({});
-                    }}
-                    className={`w-full rounded-xl border p-3 text-left transition-colors ${
-                      isSelected
+                    className={`flex items-stretch gap-1 rounded-xl border transition-colors ${
+                      isSelected || isEditing
                         ? "border-primary bg-primary/5"
                         : "border-border bg-secondary/20 hover:border-primary/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-foreground">{d.lottery?.name ?? "Unknown lottery"}</div>
-                      {published && (
-                        <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                          Published
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {new Date(d.draw_date).toLocaleString()} · {syndicateCount} syndicate
-                      {syndicateCount === 1 ? "" : "s"}
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => {
+                        setSelectedDrawId(d.id);
+                        setPrizes({});
+                        setErrors({});
+                      }}
+                      className="flex-1 min-w-0 p-3 text-left"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {d.lottery?.name ?? "Unknown lottery"}
+                        </div>
+                        {published && (
+                          <span className="shrink-0 rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                            Published
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {new Date(d.draw_date).toLocaleString()} · {syndicateCount} syndicate
+                        {syndicateCount === 1 ? "" : "s"}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                        {Intl.NumberFormat(undefined, {
+                          style: "currency",
+                          currency: d.currency,
+                          maximumFractionDigits: 0,
+                        }).format(Number(d.jackpot_amount ?? 0))}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setEditingDrawId(isEditing ? null : d.id)}
+                      aria-label="Edit draw"
+                      className={`flex w-10 shrink-0 items-center justify-center rounded-r-xl border-l border-border/50 transition-colors ${
+                        isEditing
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                      }`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 );
               })}
             </div>
