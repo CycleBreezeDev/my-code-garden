@@ -391,28 +391,67 @@ const LotteryDetail = () => {
   const total = +(subtotal * (1 - discount)).toFixed(2);
 
   // ----- Picker handlers -----------------------------------------
+  // All handlers operate on the *active* line so the user can build
+  // each line independently.
   const toggleMain = (n: number) =>
-    setMain((s) =>
-      s.includes(n) ? s.filter((x) => x !== n) : s.length < fmt.main.count ? [...s, n].sort((a, b) => a - b) : s
-    );
+    updateLine(safeActiveIdx, (l) => ({
+      ...l,
+      main: l.main.includes(n)
+        ? l.main.filter((x) => x !== n)
+        : l.main.length < fmt.main.count
+          ? [...l.main, n].sort((a, b) => a - b)
+          : l.main,
+    }));
 
   const toggleBonus = (n: number) =>
-    setBonus((s) =>
-      s.includes(n)
-        ? s.filter((x) => x !== n)
-        : s.length < fmt.bonus.count
-          ? [...s, n].sort((a, b) => a - b)
-          : s
+    updateLine(safeActiveIdx, (l) => ({
+      ...l,
+      bonus: l.bonus.includes(n)
+        ? l.bonus.filter((x) => x !== n)
+        : l.bonus.length < fmt.bonus.count
+          ? [...l.bonus, n].sort((a, b) => a - b)
+          : l.bonus,
+    }));
+
+  const handleQuickPick = () =>
+    updateLine(safeActiveIdx, () => ({
+      main: quickPick(fmt.main.count, fmt.main.min, fmt.main.max),
+      bonus: fmt.bonus.count > 0 ? quickPick(fmt.bonus.count, fmt.bonus.min, fmt.bonus.max) : [],
+    }));
+
+  // Fill *every* incomplete line with a fresh quick pick — handy when
+  // the user has bumped the line count up but hasn't picked numbers yet.
+  const handleQuickPickAll = () =>
+    setLineSlots((prev) =>
+      prev.map((l) =>
+        l.main.length === fmt.main.count && (fmt.bonus.count === 0 || l.bonus.length === fmt.bonus.count)
+          ? l
+          : {
+              main: quickPick(fmt.main.count, fmt.main.min, fmt.main.max),
+              bonus: fmt.bonus.count > 0 ? quickPick(fmt.bonus.count, fmt.bonus.min, fmt.bonus.max) : [],
+            },
+      ),
     );
 
-  const handleQuickPick = () => {
-    setMain(quickPick(fmt.main.count, fmt.main.min, fmt.main.max));
-    setBonus(fmt.bonus.count > 0 ? quickPick(fmt.bonus.count, fmt.bonus.min, fmt.bonus.max) : []);
-  };
+  const handleClear = () => updateLine(safeActiveIdx, () => emptyLine());
 
-  const handleClear = () => {
-    setMain([]);
-    setBonus([]);
+  // Adjust the number of lines. Adding pushes empty slots so the user
+  // can pick fresh numbers per line; removing trims from the end and
+  // keeps the active tab valid.
+  const setLines = (next: number | ((n: number) => number)) =>
+    setLineSlots((prev) => {
+      const target = Math.min(50, Math.max(1, typeof next === "function" ? next(prev.length) : next));
+      if (target === prev.length) return prev;
+      if (target > prev.length) {
+        return [...prev, ...Array.from({ length: target - prev.length }, emptyLine)];
+      }
+      return prev.slice(0, target);
+    });
+
+  const removeLine = (idx: number) => {
+    if (lineSlots.length <= 1) return;
+    setLineSlots((prev) => prev.filter((_, i) => i !== idx));
+    setActiveIdx((cur) => Math.max(0, Math.min(cur, lineSlots.length - 2)));
   };
 
   // ----- Buy ------------------------------------------------------
