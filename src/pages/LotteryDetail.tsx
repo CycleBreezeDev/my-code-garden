@@ -841,63 +841,68 @@ const LotteryDetail = () => {
                 <h2 className="mb-5 text-lg font-semibold text-foreground">Order summary</h2>
 
                 <div className="mb-5">
-                  <div className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    Selected numbers
-                  </div>
-                  {main.length === 0 && bonus.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Pick numbers to get started.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {main.map((n) => (
-                        <span
-                          key={`s-m-${n}`}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground"
-                          style={{ backgroundColor: color }}
-                        >
-                          {n}
-                        </span>
-                      ))}
-                      {bonus.map((n) => (
-                        <span
-                          key={`s-b-${n}`}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-sm font-bold text-primary"
-                        >
-                          {n}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-5">
-                  <div className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    Quantity (lines)
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setLines((n) => Math.max(1, n - 1))}
-                      disabled={buying || lines <= 1}
-                      aria-label="Decrease lines"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-8 text-center text-lg font-semibold text-foreground">
-                      {lines}
+                  <div className="mb-2 flex items-center justify-between text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                    <span>Your lines</span>
+                    <span className="normal-case tracking-normal text-[10px] text-muted-foreground">
+                      {completedLines}/{lines} ready
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setLines((n) => Math.min(50, n + 1))}
-                      disabled={buying || lines >= 50}
-                      aria-label="Increase lines"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {lineSlots.map((l, idx) => {
+                      const complete = isLineComplete(l);
+                      const isActive = idx === safeActiveIdx;
+                      const isEmpty = l.main.length === 0 && l.bonus.length === 0;
+                      return (
+                        <button
+                          key={`sum-${idx}`}
+                          type="button"
+                          onClick={() => setActiveIdx(idx)}
+                          disabled={buying}
+                          className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
+                            isActive
+                              ? "border-primary/60 bg-primary/5"
+                              : "border-border bg-secondary/30 hover:bg-secondary/60"
+                          }`}
+                        >
+                          <span className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            L{idx + 1}
+                          </span>
+                          {isEmpty ? (
+                            <span className="text-xs italic text-muted-foreground">
+                              Tap to pick numbers
+                            </span>
+                          ) : (
+                            <div className="flex flex-1 flex-wrap items-center gap-1">
+                              {l.main.map((n) => (
+                                <span
+                                  key={`s-m-${idx}-${n}`}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-bold text-primary-foreground"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  {n}
+                                </span>
+                              ))}
+                              {l.bonus.map((n) => (
+                                <span
+                                  key={`s-b-${idx}-${n}`}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary"
+                                >
+                                  {n}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {!complete && !isEmpty && (
+                            <span className="ml-auto shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                              Incomplete
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                   {discount > 0 && (
-                    <div className="mt-2 text-xs font-medium text-primary">
+                    <div className="mt-3 text-xs font-medium text-primary">
                       🎉 {Math.round(discount * 100)}% multi-line discount applied!
                     </div>
                   )}
