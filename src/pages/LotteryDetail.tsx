@@ -1156,13 +1156,14 @@ const LotteryDetail = () => {
                   variant="outline"
                   className="w-full sm:w-auto"
                   onClick={() => {
+                    const first = confirmation.lines[0] ?? { main: [], bonus: [] };
                     downloadTicketReceipt({
-                      ticketId: confirmation.ticketId,
+                      ticketId: confirmation.ticketIds[0] ?? "",
                       lotteryName: lottery.name,
                       drawDate: confirmation.drawDate,
-                      main: confirmation.main,
-                      bonus: confirmation.bonus,
-                      lines: confirmation.lines,
+                      main: first.main,
+                      bonus: first.bonus,
+                      lines: confirmation.lines.length,
                       pricePerLine: confirmation.pricePerLine,
                       discount: confirmation.discount,
                       total: confirmation.total,
@@ -1187,7 +1188,7 @@ const LotteryDetail = () => {
                 <Button
                   className="w-full bg-primary text-primary-foreground sm:w-auto"
                   onClick={() => {
-                    const id = confirmation.ticketId;
+                    const id = confirmation.ticketIds[0] ?? "";
                     setConfirmation(null);
                     navigate(`/dashboard?tab=tickets${id ? `&new=${id}` : ""}`);
                   }}
