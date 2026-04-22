@@ -12,10 +12,12 @@ import {
   Minus,
   Plus,
   ShieldCheck,
+  Shuffle,
   Sparkles,
   Ticket,
   Trash2,
   Wallet as WalletIcon,
+  X,
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
