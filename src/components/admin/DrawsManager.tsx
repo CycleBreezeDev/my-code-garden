@@ -10,6 +10,7 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CreateDrawCard from "./CreateDrawCard";
+import DrawEditCard from "./DrawEditCard";
 
 type DrawRow = {
   id: string;
@@ -82,6 +84,7 @@ export const DrawsManager = () => {
   >(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<ValidatedPayload | null>(null);
+  const [editingDrawId, setEditingDrawId] = useState<string | null>(null);
 
   const handleRefreshFeeds = async () => {
     setRefreshing(true);
