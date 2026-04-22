@@ -184,34 +184,53 @@ const NumberPad = ({
 // stale draft from days ago. URL query params are intentionally avoided
 // because main+bonus arrays would clutter share-links and break SSR
 // crawlers; localStorage is private to the browser and survives reload.
-const STORAGE_PREFIX = "lottery-pick:v1:";
+const STORAGE_PREFIX = "lottery-pick:v2:";
 const STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
 
-type StoredPick = { main: number[]; bonus: number[]; lines: number; savedAt: number };
+type LineSlot = { main: number[]; bonus: number[] };
+type StoredPick = { lines: LineSlot[]; activeIdx: number; savedAt: number };
+
+const emptyLine = (): LineSlot => ({ main: [], bonus: [] });
 
 const loadStoredPick = (slug: string): StoredPick | null => {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_PREFIX + slug);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<StoredPick>;
-    if (
-      !parsed ||
-      typeof parsed.savedAt !== "number" ||
-      Date.now() - parsed.savedAt > STORAGE_TTL_MS ||
-      !Array.isArray(parsed.main) ||
-      !Array.isArray(parsed.bonus) ||
-      typeof parsed.lines !== "number"
-    ) {
+    const parsed = JSON.parse(raw) as Partial<StoredPick> & {
+      // backwards-compat: v1 stored a single main/bonus pair
+      main?: number[];
+      bonus?: number[];
+    };
+    if (!parsed || typeof parsed.savedAt !== "number" || Date.now() - parsed.savedAt > STORAGE_TTL_MS) {
       window.localStorage.removeItem(STORAGE_PREFIX + slug);
       return null;
     }
-    return {
-      main: parsed.main.filter((n) => Number.isFinite(n)),
-      bonus: parsed.bonus.filter((n) => Number.isFinite(n)),
-      lines: Math.min(50, Math.max(1, Math.floor(parsed.lines))),
-      savedAt: parsed.savedAt,
-    };
+    if (Array.isArray(parsed.lines) && parsed.lines.length > 0) {
+      const lines = parsed.lines.slice(0, 50).map((l) => ({
+        main: Array.isArray(l?.main) ? l.main.filter((n) => Number.isFinite(n)) : [],
+        bonus: Array.isArray(l?.bonus) ? l.bonus.filter((n) => Number.isFinite(n)) : [],
+      }));
+      const activeIdx = Math.min(
+        Math.max(0, Math.floor(parsed.activeIdx ?? 0)),
+        lines.length - 1,
+      );
+      return { lines, activeIdx, savedAt: parsed.savedAt };
+    }
+    // Legacy v1 fallback — migrate single line into the new array shape.
+    if (Array.isArray(parsed.main) || Array.isArray(parsed.bonus)) {
+      return {
+        lines: [
+          {
+            main: (parsed.main ?? []).filter((n) => Number.isFinite(n)),
+            bonus: (parsed.bonus ?? []).filter((n) => Number.isFinite(n)),
+          },
+        ],
+        activeIdx: 0,
+        savedAt: parsed.savedAt,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -221,6 +240,8 @@ const clearStoredPick = (slug: string) => {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(STORAGE_PREFIX + slug);
+    // Also wipe the legacy v1 key so we don't resurrect stale picks.
+    window.localStorage.removeItem("lottery-pick:v1:" + slug);
   } catch {
     /* ignore quota / private-mode errors */
   }
@@ -236,20 +257,24 @@ const LotteryDetail = () => {
   // Lazy initial state hydrates synchronously from localStorage so the
   // first paint already shows the persisted picks (no flicker).
   const initial = useMemo(() => (slug ? loadStoredPick(slug) : null), [slug]);
-  const [main, setMain] = useState<number[]>(initial?.main ?? []);
-  const [bonus, setBonus] = useState<number[]>(initial?.bonus ?? []);
-  const [lines, setLines] = useState(initial?.lines ?? 1);
+  const [lineSlots, setLineSlots] = useState<LineSlot[]>(initial?.lines ?? [emptyLine()]);
+  const [activeIdx, setActiveIdx] = useState<number>(initial?.activeIdx ?? 0);
   const [buying, setBuying] = useState(false);
 
-  // Snapshot of the just-purchased ticket for the confirmation dialog.
-  // Captured *before* state is cleared so the dialog can show what was
-  // actually bought even after picks reset to empty.
+  const lines = lineSlots.length;
+  const safeActiveIdx = Math.min(activeIdx, lines - 1);
+  const activeLine = lineSlots[safeActiveIdx] ?? emptyLine();
+  const main = activeLine.main;
+  const bonus = activeLine.bonus;
+
+  const updateLine = (idx: number, updater: (l: LineSlot) => LineSlot) =>
+    setLineSlots((prev) => prev.map((l, i) => (i === idx ? updater(l) : l)));
+
+  // Snapshot of the just-purchased ticket(s) for the confirmation dialog.
   type Confirmation = {
-    ticketId: string;
+    ticketIds: string[];
     drawDate: string;
-    main: number[];
-    bonus: number[];
-    lines: number;
+    lines: LineSlot[];
     total: number;
     currency: string;
     pricePerLine: number;
@@ -258,24 +283,24 @@ const LotteryDetail = () => {
   };
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
-  // Persist picks + lines whenever they change. Empty selections clear
-  // the slot so we don't waste storage on a blank slate. Wrapped in a
-  // try/catch because Safari private mode can throw on setItem.
+  // Persist picks whenever they change. Empty selections clear the slot
+  // so we don't waste storage on a blank slate.
   useEffect(() => {
     if (!slug) return;
-    if (main.length === 0 && bonus.length === 0 && lines === 1) {
+    const allEmpty = lineSlots.every((l) => l.main.length === 0 && l.bonus.length === 0);
+    if (allEmpty && lineSlots.length === 1) {
       clearStoredPick(slug);
       return;
     }
     try {
       window.localStorage.setItem(
         STORAGE_PREFIX + slug,
-        JSON.stringify({ main, bonus, lines, savedAt: Date.now() } satisfies StoredPick)
+        JSON.stringify({ lines: lineSlots, activeIdx: safeActiveIdx, savedAt: Date.now() } satisfies StoredPick),
       );
     } catch {
       /* ignore quota / private-mode errors */
     }
-  }, [slug, main, bonus, lines]);
+  }, [slug, lineSlots, safeActiveIdx]);
 
   // ----- Lottery + upcoming draw ---------------------------------
   const { data: lottery, isLoading } = useQuery({
