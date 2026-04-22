@@ -158,6 +158,8 @@ export type Database = {
           logo_key: string | null
           logo_url: string | null
           name: string
+          number_format: Json
+          price_per_line: number
           slug: string
         }
         Insert: {
@@ -172,6 +174,8 @@ export type Database = {
           logo_key?: string | null
           logo_url?: string | null
           name: string
+          number_format?: Json
+          price_per_line?: number
           slug: string
         }
         Update: {
@@ -186,6 +190,8 @@ export type Database = {
           logo_key?: string | null
           logo_url?: string | null
           name?: string
+          number_format?: Json
+          price_per_line?: number
           slug?: string
         }
         Relationships: []
@@ -487,6 +493,7 @@ export type Database = {
           draw_id: string
           id: string
           name: string
+          picks_lock_offset_minutes: number
           price_per_share: number
           slug: string
           sold_shares: number
@@ -500,6 +507,7 @@ export type Database = {
           draw_id: string
           id?: string
           name: string
+          picks_lock_offset_minutes?: number
           price_per_share: number
           slug: string
           sold_shares?: number
@@ -513,6 +521,7 @@ export type Database = {
           draw_id?: string
           id?: string
           name?: string
+          picks_lock_offset_minutes?: number
           price_per_share?: number
           slug?: string
           sold_shares?: number
