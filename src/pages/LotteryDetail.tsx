@@ -459,50 +459,59 @@ const LotteryDetail = () => {
   // states that the user can't fix from this page (no upcoming draw,
   // draw already closed, or empty picks) gate the Buy button. The only
   // *inline* error we show is insufficient wallet balance.
-  const picksReady =
-    main.length === fmt.main.count &&
-    (fmt.bonus.count === 0 || bonus.length === fmt.bonus.count);
+  const isLineComplete = (l: LineSlot) =>
+    l.main.length === fmt.main.count && (fmt.bonus.count === 0 || l.bonus.length === fmt.bonus.count);
+  const completedLines = lineSlots.filter(isLineComplete).length;
+  const allLinesReady = completedLines === lineSlots.length && lineSlots.length > 0;
+  const picksReady = allLinesReady;
   const drawAvailable = !!upcomingDraw && drawCountdown > 0;
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
   const handleBuy = async () => {
-    // Re-entry guard: if a purchase is already in flight, ignore
-    // additional clicks / Enter-key repeats so we never fire
-    // wallet_buy_ticket twice for the same selection.
+    // Re-entry guard
     if (buying) return;
     if (!user) {
       navigate("/login");
       return;
     }
-    if (!picksReady || !upcomingDraw) {
-      // Button is disabled in this state — nothing to surface.
-      return;
-    }
+    if (!picksReady || !upcomingDraw) return;
     if (insufficientFunds) {
-      // Inline error already visible; also redirect to top-up.
       navigate("/wallet/add-funds");
       return;
     }
 
     setBuying(true);
-    // The generated Supabase types may not include the new RPC yet — cast
-    // the function name so the typecheck doesn't block the build until
-    // types regenerate after the migration is applied.
-    const { data, error } = await (supabase.rpc as unknown as (
+
+    // Send each distinct line as its own RPC call so users get separate
+    // ticket records per line. We submit sequentially so an early failure
+    // (e.g. wallet drained) doesn't burn the remaining balance silently.
+    type RpcResp = { data: string | null; error: { message: string } | null };
+    const rpc = supabase.rpc as unknown as (
       fn: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: string | null; error: { message: string } | null }>)(
-      "wallet_buy_ticket",
-      { _draw_id: upcomingDraw.id, _main: main, _bonus: bonus, _lines: lines }
-    );
+      args: Record<string, unknown>,
+    ) => Promise<RpcResp>;
+
+    const ticketIds: string[] = [];
+    let firstError: { message: string } | null = null;
+    for (const line of lineSlots) {
+      const { data, error } = await rpc("wallet_buy_ticket", {
+        _draw_id: upcomingDraw.id,
+        _main: line.main,
+        _bonus: line.bonus,
+        _lines: 1,
+      });
+      if (error) {
+        firstError = error;
+        break;
+      }
+      if (data) ticketIds.push(data);
+    }
+
     setBuying(false);
 
-    if (error) {
-      // Map known PostgreSQL `RAISE EXCEPTION` strings from wallet_buy_ticket
-      // into friendly, actionable toasts. Anything unmatched falls through
-      // to a generic message with the raw text in the description.
-      const raw = error.message ?? "";
+    if (firstError) {
+      const raw = firstError.message ?? "";
       const lower = raw.toLowerCase();
 
       if (lower.includes("insufficient wallet balance")) {
@@ -519,10 +528,11 @@ const LotteryDetail = () => {
         toast.error("This draw is closed", {
           description: "Sales have ended for this draw. Pick the next one when it opens.",
         });
-        // Refresh the lottery so the countdown / upcoming draw updates.
         queryClient.invalidateQueries({ queryKey: ["lottery-detail", slug] });
       } else if (lower.includes("draw not found")) {
-        toast.error("Draw unavailable", { description: "We couldn't find that draw — please refresh and try again." });
+        toast.error("Draw unavailable", {
+          description: "We couldn't find that draw — please refresh and try again.",
+        });
         queryClient.invalidateQueries({ queryKey: ["lottery-detail", slug] });
       } else if (lower.includes("lottery is not active")) {
         toast.error("Lottery paused", { description: "Ticket sales are paused for this lottery right now." });
@@ -536,32 +546,34 @@ const LotteryDetail = () => {
       } else {
         toast.error("Couldn't complete purchase", { description: raw || "Please try again in a moment." });
       }
+      // If some lines went through before the failure, refresh state so
+      // wallet balance and tickets list reflect what was charged.
+      if (ticketIds.length > 0) {
+        await refreshWallet();
+        queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
+      }
       return;
     }
-    // Snapshot the purchase *before* clearing the picker so the
-    // confirmation dialog reflects what was actually bought.
-    const ticketId = data ?? "";
+
+    const refTicketId = ticketIds[0] ?? "";
     setConfirmation({
-      ticketId,
+      ticketIds,
       drawDate: upcomingDraw.draw_date,
-      main: [...main],
-      bonus: [...bonus],
-      lines,
+      lines: lineSlots.map((l) => ({ main: [...l.main], bonus: [...l.bonus] })),
       total,
       currency,
       pricePerLine,
       discount,
-      paymentReference: ticketId ? `ticket:${ticketId}` : "",
+      paymentReference: refTicketId ? `ticket:${refTicketId}` : "",
     });
     toast.success("Ticket purchased! 🎟️", {
       description: `${lines} line${lines > 1 ? "s" : ""} for ${lottery.name}`,
     });
-    handleClear();
-    setLines(1);
+    setLineSlots([emptyLine()]);
+    setActiveIdx(0);
     if (slug) clearStoredPick(slug);
     await refreshWallet();
     queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
-    // Don't auto-redirect — let the confirmation dialog drive next steps.
   };
 
   // ----- Render ---------------------------------------------------
