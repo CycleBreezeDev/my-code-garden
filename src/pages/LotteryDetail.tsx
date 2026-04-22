@@ -633,18 +633,101 @@ const LotteryDetail = () => {
             {/* ============================================== */}
             <div className="space-y-6 lg:col-span-2">
               <div className="rounded-2xl border border-border bg-card p-6">
-                <h2 className="mb-1 text-lg font-semibold text-foreground">Pick your numbers</h2>
-                <p className="mb-6 text-sm text-muted-foreground">
-                  Select {fmt.main.count} main number{fmt.main.count > 1 ? "s" : ""}
-                  {fmt.bonus.count > 0
-                    ? ` and ${fmt.bonus.count} bonus number${fmt.bonus.count > 1 ? "s" : ""}`
-                    : ""}
-                  , or use Quick Pick.
-                </p>
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Pick your numbers</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Select {fmt.main.count} main number{fmt.main.count > 1 ? "s" : ""}
+                      {fmt.bonus.count > 0
+                        ? ` and ${fmt.bonus.count} bonus number${fmt.bonus.count > 1 ? "s" : ""}`
+                        : ""}{" "}
+                      per line, or use Quick Pick.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setLines((n) => n - 1)}
+                      disabled={buying || lines <= 1}
+                      aria-label="Remove a line"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="min-w-[3.5rem] text-center text-xs font-medium text-foreground">
+                      {lines} line{lines === 1 ? "" : "s"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLines((n) => n + 1)}
+                      disabled={buying || lines >= 50}
+                      aria-label="Add a line"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Per-line tabs — visible only when buying more than one
+                    line. Each chip shows progress (e.g. 5/5+1) so users
+                    spot incomplete lines at a glance. */}
+                {lines > 1 && (
+                  <div className="mb-5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+                    {lineSlots.map((l, idx) => {
+                      const isActive = idx === safeActiveIdx;
+                      const complete = isLineComplete(l);
+                      return (
+                        <div
+                          key={idx}
+                          className={`group relative flex shrink-0 items-center rounded-xl border transition-all ${
+                            isActive
+                              ? "border-primary bg-primary/10 shadow-sm"
+                              : complete
+                                ? "border-border bg-secondary/40 hover:bg-secondary/70"
+                                : "border-dashed border-border bg-secondary/20 hover:bg-secondary/40"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setActiveIdx(idx)}
+                            disabled={buying}
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground"
+                          >
+                            <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                              Line {idx + 1}
+                            </span>
+                            <span
+                              className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${
+                                complete
+                                  ? "bg-primary/20 text-primary"
+                                  : "bg-secondary text-muted-foreground"
+                              }`}
+                            >
+                              {l.main.length}/{fmt.main.count}
+                              {fmt.bonus.count > 0 ? `+${l.bonus.length}/${fmt.bonus.count}` : ""}
+                            </span>
+                          </button>
+                          {lineSlots.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeLine(idx)}
+                              disabled={buying}
+                              aria-label={`Remove line ${idx + 1}`}
+                              className="mr-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive disabled:opacity-40"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div className="mb-6">
                   <NumberPad
-                    label="Main numbers"
+                    label={lines > 1 ? `Line ${safeActiveIdx + 1} · Main numbers` : "Main numbers"}
                     min={fmt.main.min}
                     max={fmt.main.max}
                     required={fmt.main.count}
@@ -658,7 +741,7 @@ const LotteryDetail = () => {
                 {fmt.bonus.count > 0 && (
                   <div className="mb-6">
                     <NumberPad
-                      label="Bonus numbers"
+                      label={lines > 1 ? `Line ${safeActiveIdx + 1} · Bonus numbers` : "Bonus numbers"}
                       min={fmt.bonus.min}
                       max={fmt.bonus.max}
                       required={fmt.bonus.count}
@@ -670,7 +753,7 @@ const LotteryDetail = () => {
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={handleQuickPick}
                     variant="outline"
@@ -678,8 +761,19 @@ const LotteryDetail = () => {
                     disabled={buying}
                   >
                     <Sparkles className="mr-1.5 h-4 w-4" />
-                    Quick Pick
+                    Quick Pick this line
                   </Button>
+                  {lines > 1 && (
+                    <Button
+                      onClick={handleQuickPickAll}
+                      variant="outline"
+                      className="border-border"
+                      disabled={buying || allLinesReady}
+                    >
+                      <Shuffle className="mr-1.5 h-4 w-4" />
+                      Fill empty lines
+                    </Button>
+                  )}
                   <Button
                     onClick={handleClear}
                     variant="outline"
@@ -687,7 +781,7 @@ const LotteryDetail = () => {
                     disabled={buying || (main.length === 0 && bonus.length === 0)}
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
-                    Clear All
+                    Clear line
                   </Button>
                 </div>
               </div>
