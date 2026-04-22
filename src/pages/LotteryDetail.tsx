@@ -1041,45 +1041,45 @@ const LotteryDetail = () => {
               </DialogHeader>
 
               <div className="space-y-4">
-                {/* Numbers — repeated per line for clarity */}
+                {/* Numbers per line */}
                 <div className="rounded-xl border border-border bg-secondary/30 p-3">
                   <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                     <span>Your numbers</span>
                     <span>
-                      {confirmation.lines} line{confirmation.lines === 1 ? "" : "s"}
+                      {confirmation.lines.length} line{confirmation.lines.length === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                        Main
-                      </span>
-                      {confirmation.main.map((n, i) => (
-                        <span
-                          key={`cm-${i}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground"
-                          style={{ backgroundColor: color }}
-                        >
-                          {n}
-                        </span>
-                      ))}
-                    </div>
-                    {confirmation.bonus.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                          Bonus
-                        </span>
-                        {confirmation.bonus.map((n, i) => (
-                          <span
-                            key={`cb-${i}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border-2 text-sm font-bold"
-                            style={{ borderColor: color, color }}
-                          >
-                            {n}
-                          </span>
-                        ))}
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {confirmation.lines.map((l, idx) => (
+                      <div
+                        key={`cl-${idx}`}
+                        className="rounded-lg border border-border bg-card p-2"
+                      >
+                        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          Line {idx + 1}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {l.main.map((n, i) => (
+                            <span
+                              key={`cm-${idx}-${i}`}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold text-primary-foreground"
+                              style={{ backgroundColor: color }}
+                            >
+                              {n}
+                            </span>
+                          ))}
+                          {l.bonus.map((n, i) => (
+                            <span
+                              key={`cb-${idx}-${i}`}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border-2 text-xs font-bold"
+                              style={{ borderColor: color, color }}
+                            >
+                              {n}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
 
@@ -1093,12 +1093,12 @@ const LotteryDetail = () => {
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>
-                      Lines <span className="text-xs">×{confirmation.lines}</span>
+                      Lines <span className="text-xs">×{confirmation.lines.length}</span>
                     </span>
                     <span className="tabular-nums">
                       {formatPrice(
-                        +(confirmation.pricePerLine * confirmation.lines).toFixed(2),
-                        confirmation.currency
+                        +(confirmation.pricePerLine * confirmation.lines.length).toFixed(2),
+                        confirmation.currency,
                       )}
                     </span>
                   </div>
@@ -1109,10 +1109,10 @@ const LotteryDetail = () => {
                         −
                         {formatPrice(
                           +(
-                            confirmation.pricePerLine * confirmation.lines -
+                            confirmation.pricePerLine * confirmation.lines.length -
                             confirmation.total
                           ).toFixed(2),
-                          confirmation.currency
+                          confirmation.currency,
                         )}
                       </span>
                     </div>
@@ -1125,24 +1125,27 @@ const LotteryDetail = () => {
                   </div>
                 </div>
 
-                {/* Reference (copy-to-clipboard) */}
-                {confirmation.ticketId && (
+                {/* Reference (copy-to-clipboard) — first ticket id */}
+                {confirmation.ticketIds[0] && (
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(confirmation.ticketId);
-                      toast.success("Ticket ID copied");
+                      navigator.clipboard.writeText(confirmation.ticketIds.join(","));
+                      toast.success(
+                        confirmation.ticketIds.length > 1 ? "Ticket IDs copied" : "Ticket ID copied",
+                      );
                     }}
                     className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                     title="Copy ticket ID"
                   >
                     <span className="font-mono">
-                      {confirmation.ticketId.slice(0, 8)}…
-                      {confirmation.ticketId.slice(-4)}
+                      {confirmation.ticketIds[0].slice(0, 8)}…
+                      {confirmation.ticketIds[0].slice(-4)}
+                      {confirmation.ticketIds.length > 1 && ` (+${confirmation.ticketIds.length - 1} more)`}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Copy className="h-3 w-3" />
-                      Copy ID
+                      Copy ID{confirmation.ticketIds.length > 1 ? "s" : ""}
                     </span>
                   </button>
                 )}
