@@ -1107,9 +1107,11 @@ const LotteryDetail = () => {
 
                 <Button
                   onClick={handleBuy}
-                  disabled={buying || !picksReady || !drawAvailable}
+                  disabled={buying || !drawAvailable}
                   aria-busy={buying}
                   aria-live="polite"
+                  aria-invalid={!picksReady || !!pickValidationMsg}
+                  aria-describedby={pickValidationMsg ? "pick-validation-msg" : undefined}
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
@@ -1125,8 +1127,19 @@ const LotteryDetail = () => {
                   )}
                 </Button>
 
-                {/* Only inline error: insufficient balance (the picker
-                    prevents wrong counts/ranges/duplicates by design). */}
+                {/* Inline validation: incomplete picks (highest priority) */}
+                {pickValidationMsg && (
+                  <div
+                    id="pick-validation-msg"
+                    role="alert"
+                    className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive"
+                  >
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{pickValidationMsg}</span>
+                  </div>
+                )}
+
+                {/* Insufficient balance (only when picks are valid) */}
                 {user && wallet && insufficientFunds && picksReady && drawAvailable && (
                   <p className="mb-2 text-center text-xs font-medium text-destructive">
                     Not enough {currency} to cover {formatPrice(total, currency)}. Tap Buy to top up.
