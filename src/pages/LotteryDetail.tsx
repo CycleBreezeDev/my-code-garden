@@ -433,7 +433,11 @@ const LotteryDetail = () => {
       ),
     );
 
-  const handleClear = () => updateLine(safeActiveIdx, () => emptyLine());
+  const handleClear = () => {
+    if (activeLine.main.length === 0 && activeLine.bonus.length === 0) return;
+    updateLine(safeActiveIdx, () => emptyLine());
+    toast.success(`Line ${safeActiveIdx + 1} cleared`);
+  };
 
   // Adjust the number of lines. Adding pushes empty slots so the user
   // can pick fresh numbers per line; removing trims from the end and
