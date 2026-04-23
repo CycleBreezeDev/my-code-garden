@@ -433,7 +433,11 @@ const LotteryDetail = () => {
       ),
     );
 
-  const handleClear = () => updateLine(safeActiveIdx, () => emptyLine());
+  const handleClear = () => {
+    if (activeLine.main.length === 0 && activeLine.bonus.length === 0) return;
+    updateLine(safeActiveIdx, () => emptyLine());
+    toast.success(`Line ${safeActiveIdx + 1} cleared`);
+  };
 
   // Adjust the number of lines. Adding pushes empty slots so the user
   // can pick fresh numbers per line; removing trims from the end and
@@ -816,7 +820,7 @@ const LotteryDetail = () => {
                     disabled={buying || (main.length === 0 && bonus.length === 0)}
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
-                    Clear line
+                    {lines > 1 ? `Clear Line ${safeActiveIdx + 1}` : "Clear line"}
                   </Button>
                 </div>
               </div>
