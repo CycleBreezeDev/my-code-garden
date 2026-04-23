@@ -820,7 +820,7 @@ const LotteryDetail = () => {
                     disabled={buying || (main.length === 0 && bonus.length === 0)}
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
-                    Clear line
+                    {lines > 1 ? `Clear Line ${safeActiveIdx + 1}` : "Clear line"}
                   </Button>
                 </div>
               </div>
