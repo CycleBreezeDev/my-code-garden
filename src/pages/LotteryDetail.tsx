@@ -673,7 +673,7 @@ const LotteryDetail = () => {
                     line. Each chip shows progress (e.g. 5/5+1) so users
                     spot incomplete lines at a glance. */}
                 {lines > 1 && (
-                  <div className="mb-5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+                  <div className="mb-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
                     {lineSlots.map((l, idx) => {
                       const isActive = idx === safeActiveIdx;
                       const complete = isLineComplete(l);
@@ -725,9 +725,44 @@ const LotteryDetail = () => {
                   </div>
                 )}
 
+                {/* Active-line header — makes it obvious which line the
+                    user is currently editing and how complete it is. */}
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground">
+                      {safeActiveIdx + 1}
+                    </span>
+                    <h2 className="text-sm font-semibold text-foreground sm:text-base">
+                      Select numbers for Line {safeActiveIdx + 1}
+                      {lines > 1 ? ` of ${lines}` : ""}
+                    </h2>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      isLineComplete(activeLine)
+                        ? "bg-primary/15 text-primary"
+                        : "bg-background text-muted-foreground"
+                    }`}
+                  >
+                    {isLineComplete(activeLine) ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>Line complete</span>
+                      </>
+                    ) : (
+                      <span className="tabular-nums">
+                        {main.length}/{fmt.main.count} main
+                        {fmt.bonus.count > 0
+                          ? ` · ${bonus.length}/${fmt.bonus.count} bonus`
+                          : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <div className="mb-6">
                   <NumberPad
-                    label={lines > 1 ? `Line ${safeActiveIdx + 1} · Main numbers` : "Main numbers"}
+                    label="Main numbers"
                     min={fmt.main.min}
                     max={fmt.main.max}
                     required={fmt.main.count}
@@ -741,7 +776,7 @@ const LotteryDetail = () => {
                 {fmt.bonus.count > 0 && (
                   <div className="mb-6">
                     <NumberPad
-                      label={lines > 1 ? `Line ${safeActiveIdx + 1} · Bonus numbers` : "Bonus numbers"}
+                      label="Bonus numbers"
                       min={fmt.bonus.min}
                       max={fmt.bonus.max}
                       required={fmt.bonus.count}
