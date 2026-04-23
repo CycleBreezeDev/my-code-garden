@@ -767,18 +767,20 @@ const LotteryDetail = () => {
 
                 {/* Active-line header — makes it obvious which line the
                     user is currently editing and how complete it is. */}
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground">
+                <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-secondary/30 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground">
                       {safeActiveIdx + 1}
                     </span>
-                    <h2 className="text-sm font-semibold text-foreground sm:text-base">
-                      Select numbers for Line {safeActiveIdx + 1}
-                      {lines > 1 ? ` of ${lines}` : ""}
+                    <h2 className="min-w-0 truncate text-sm font-semibold text-foreground sm:text-base">
+                      <span className="sm:hidden">Line {safeActiveIdx + 1}{lines > 1 ? ` of ${lines}` : ""}</span>
+                      <span className="hidden sm:inline">
+                        Select numbers for Line {safeActiveIdx + 1}{lines > 1 ? ` of ${lines}` : ""}
+                      </span>
                     </h2>
                   </div>
                   <div
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                    className={`inline-flex w-fit shrink-0 items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-xs font-medium sm:self-auto ${
                       isLineComplete(activeLine)
                         ? "bg-primary/15 text-primary"
                         : "bg-background text-muted-foreground"
@@ -799,6 +801,7 @@ const LotteryDetail = () => {
                     )}
                   </div>
                 </div>
+
 
                 <div className="mb-6">
                   <NumberPad
