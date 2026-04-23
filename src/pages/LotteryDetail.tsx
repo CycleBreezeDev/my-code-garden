@@ -673,7 +673,7 @@ const LotteryDetail = () => {
                     line. Each chip shows progress (e.g. 5/5+1) so users
                     spot incomplete lines at a glance. */}
                 {lines > 1 && (
-                  <div className="mb-5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+                  <div className="mb-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
                     {lineSlots.map((l, idx) => {
                       const isActive = idx === safeActiveIdx;
                       const complete = isLineComplete(l);
