@@ -502,33 +502,8 @@ const LotteryDetail = () => {
   const allLinesReady = completedLines === lineSlots.length && lineSlots.length > 0;
   const picksReady = allLinesReady;
 
-  // Auto-advance: when the active line becomes complete, jump focus to
-  // the next incomplete line (wrapping to earlier lines if needed) so
-  // the user can keep building without manually switching tabs. We skip
-  // when there's only one line or when every line is already done.
-  const lastAdvancedFromRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (lineSlots.length <= 1) return;
-    if (!isLineComplete(activeLine)) {
-      lastAdvancedFromRef.current = null;
-      return;
-    }
-    if (lastAdvancedFromRef.current === safeActiveIdx) return;
-
-    // Find the next incomplete line, starting after the active one and
-    // wrapping around so we don't get stuck at the end.
-    const total = lineSlots.length;
-    for (let step = 1; step < total; step++) {
-      const candidate = (safeActiveIdx + step) % total;
-      if (!isLineComplete(lineSlots[candidate])) {
-        lastAdvancedFromRef.current = safeActiveIdx;
-        setActiveIdx(candidate);
-        return;
-      }
-    }
-    // All lines complete — nothing to advance to.
-    lastAdvancedFromRef.current = safeActiveIdx;
-  }, [lineSlots, safeActiveIdx, activeLine, fmt.main.count, fmt.bonus.count]);
+  // (Auto-advance effect lives above the early returns — see hook
+  // declared right after the lottery query.)
   const drawAvailable = !!upcomingDraw && drawCountdown > 0;
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
