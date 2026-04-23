@@ -776,7 +776,7 @@ const LotteryDetail = () => {
                 {fmt.bonus.count > 0 && (
                   <div className="mb-6">
                     <NumberPad
-                      label={lines > 1 ? `Line ${safeActiveIdx + 1} · Bonus numbers` : "Bonus numbers"}
+                      label="Bonus numbers"
                       min={fmt.bonus.min}
                       max={fmt.bonus.max}
                       required={fmt.bonus.count}
