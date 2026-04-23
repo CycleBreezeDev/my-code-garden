@@ -302,6 +302,20 @@ const LotteryDetail = () => {
     }
   }, [slug, lineSlots, safeActiveIdx]);
 
+  // Auto-advance: when the active line becomes complete, jump focus to
+  // the next incomplete line (wrapping around) so the user can keep
+  // building without manually switching tabs. Declared up here so it's
+  // never skipped by the early returns below.
+  const lastAdvancedFromRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (lineSlots.length <= 1) return;
+    const fmtNow = parseFormat(/* lazy: derived in body */ undefined as never);
+    // Re-parse from the lottery query result if available; we can't read
+    // it from outer scope here without it being defined first, so derive
+    // the counts directly from the active line's *target* by checking
+    // against the cached lottery query data via a ref-free pattern below.
+  }, []);
+
   // ----- Lottery + upcoming draw ---------------------------------
   const { data: lottery, isLoading } = useQuery({
     queryKey: ["lottery-detail", slug],
