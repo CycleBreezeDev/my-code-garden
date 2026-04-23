@@ -508,6 +508,35 @@ const LotteryDetail = () => {
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
+  // Inline validation: surface a specific message when the user taps
+  // Buy with incomplete picks instead of silently disabling the button.
+  // Cleared automatically once all lines are valid.
+  const [pickValidationMsg, setPickValidationMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (picksReady && pickValidationMsg) setPickValidationMsg(null);
+  }, [picksReady, pickValidationMsg]);
+
+  // Build a friendly description of what's missing on the first
+  // incomplete line so the message is actionable.
+  const describeIncomplete = (): { idx: number; msg: string } | null => {
+    const idx = lineSlots.findIndex((l) => !isLineComplete(l));
+    if (idx === -1) return null;
+    const l = lineSlots[idx];
+    const parts: string[] = [];
+    const mainNeeded = fmt.main.count - l.main.length;
+    if (mainNeeded > 0) {
+      parts.push(`${mainNeeded} more main number${mainNeeded === 1 ? "" : "s"}`);
+    }
+    if (fmt.bonus.count > 0) {
+      const bonusNeeded = fmt.bonus.count - l.bonus.length;
+      if (bonusNeeded > 0) {
+        parts.push(`${bonusNeeded} more bonus number${bonusNeeded === 1 ? "" : "s"}`);
+      }
+    }
+    const linePrefix = lineSlots.length > 1 ? `Line ${idx + 1} needs ` : "Pick ";
+    return { idx, msg: `${linePrefix}${parts.join(" and ")} to continue.` };
+  };
+
   const handleBuy = async () => {
     // Re-entry guard
     if (buying) return;
@@ -515,7 +544,16 @@ const LotteryDetail = () => {
       navigate("/login");
       return;
     }
-    if (!picksReady || !upcomingDraw) return;
+    if (!upcomingDraw) return;
+    if (!picksReady) {
+      const detail = describeIncomplete();
+      if (detail) {
+        setPickValidationMsg(detail.msg);
+        setActiveIdx(detail.idx);
+        toast.error(detail.msg);
+      }
+      return;
+    }
     if (insufficientFunds) {
       navigate("/wallet/add-funds");
       return;
