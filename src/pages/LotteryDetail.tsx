@@ -525,13 +525,8 @@ const LotteryDetail = () => {
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
-  // Inline validation: surface a specific message when the user taps
-  // Buy with incomplete picks instead of silently disabling the button.
-  // Cleared automatically once all lines are valid.
-  const [pickValidationMsg, setPickValidationMsg] = useState<string | null>(null);
-  useEffect(() => {
-    if (picksReady && pickValidationMsg) setPickValidationMsg(null);
-  }, [picksReady, pickValidationMsg]);
+  // (pickValidationMsg state + clearing effect declared above the early
+  // returns so React's hook order stays stable.)
 
   // Build a friendly description of what's missing on the first
   // incomplete line so the message is actionable.
