@@ -283,6 +283,23 @@ const LotteryDetail = () => {
   };
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
+  // Inline validation message shown when the user taps Buy with
+  // incomplete picks. Cleared by an effect once the picks are valid.
+  const [pickValidationMsg, setPickValidationMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pickValidationMsg) return;
+    // Re-derive completeness here so the cleanup runs above the early
+    // returns where `fmt`/`isLineComplete` aren't in scope yet.
+    if (!lottery) return;
+    const fmtNow = parseFormat(lottery.number_format);
+    const allComplete = lineSlots.every(
+      (l) =>
+        l.main.length === fmtNow.main.count &&
+        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
+    );
+    if (allComplete) setPickValidationMsg(null);
+  }, [pickValidationMsg, lineSlots, lottery]);
+
   // Persist picks whenever they change. Empty selections clear the slot
   // so we don't waste storage on a blank slate.
   useEffect(() => {
