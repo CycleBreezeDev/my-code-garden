@@ -342,7 +342,36 @@ const LotteryDetail = () => {
     enabled: !!lottery?.id,
   });
 
-  // ----- Loading / not-found -------------------------------------
+  // ----- Auto-advance -------------------------------------------
+  // When the active line becomes complete, jump focus to the next
+  // incomplete line (wrapping around) so the user can keep building
+  // without manually switching tabs. Declared above the early returns
+  // so React's hook order is stable across renders.
+  const lastAdvancedFromRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!lottery || lineSlots.length <= 1) return;
+    const fmtNow = parseFormat(lottery.number_format);
+    const isComplete = (l: LineSlot) =>
+      l.main.length === fmtNow.main.count &&
+      (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count);
+    const active = lineSlots[safeActiveIdx];
+    if (!active || !isComplete(active)) {
+      lastAdvancedFromRef.current = null;
+      return;
+    }
+    if (lastAdvancedFromRef.current === safeActiveIdx) return;
+    const total = lineSlots.length;
+    for (let step = 1; step < total; step++) {
+      const candidate = (safeActiveIdx + step) % total;
+      if (!isComplete(lineSlots[candidate])) {
+        lastAdvancedFromRef.current = safeActiveIdx;
+        setActiveIdx(candidate);
+        return;
+      }
+    }
+    lastAdvancedFromRef.current = safeActiveIdx;
+  }, [lottery, lineSlots, safeActiveIdx]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
