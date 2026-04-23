@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  AlertCircle,
   Calendar,
   CheckCircle2,
   Clock,
@@ -283,6 +284,23 @@ const LotteryDetail = () => {
   };
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
+  // Inline validation message shown when the user taps Buy with
+  // incomplete picks. Cleared by an effect once the picks are valid.
+  const [pickValidationMsg, setPickValidationMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pickValidationMsg) return;
+    // Re-derive completeness here so the cleanup runs above the early
+    // returns where `fmt`/`isLineComplete` aren't in scope yet.
+    if (!lottery) return;
+    const fmtNow = parseFormat(lottery.number_format);
+    const allComplete = lineSlots.every(
+      (l) =>
+        l.main.length === fmtNow.main.count &&
+        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
+    );
+    if (allComplete) setPickValidationMsg(null);
+  }, [pickValidationMsg, lineSlots, lottery]);
+
   // Persist picks whenever they change. Empty selections clear the slot
   // so we don't waste storage on a blank slate.
   useEffect(() => {
@@ -508,6 +526,30 @@ const LotteryDetail = () => {
 
   const insufficientFunds = wallet ? wallet.available_balance < total : true;
 
+  // (pickValidationMsg state + clearing effect declared above the early
+  // returns so React's hook order stays stable.)
+
+  // Build a friendly description of what's missing on the first
+  // incomplete line so the message is actionable.
+  const describeIncomplete = (): { idx: number; msg: string } | null => {
+    const idx = lineSlots.findIndex((l) => !isLineComplete(l));
+    if (idx === -1) return null;
+    const l = lineSlots[idx];
+    const parts: string[] = [];
+    const mainNeeded = fmt.main.count - l.main.length;
+    if (mainNeeded > 0) {
+      parts.push(`${mainNeeded} more main number${mainNeeded === 1 ? "" : "s"}`);
+    }
+    if (fmt.bonus.count > 0) {
+      const bonusNeeded = fmt.bonus.count - l.bonus.length;
+      if (bonusNeeded > 0) {
+        parts.push(`${bonusNeeded} more bonus number${bonusNeeded === 1 ? "" : "s"}`);
+      }
+    }
+    const linePrefix = lineSlots.length > 1 ? `Line ${idx + 1} needs ` : "Pick ";
+    return { idx, msg: `${linePrefix}${parts.join(" and ")} to continue.` };
+  };
+
   const handleBuy = async () => {
     // Re-entry guard
     if (buying) return;
@@ -515,7 +557,16 @@ const LotteryDetail = () => {
       navigate("/login");
       return;
     }
-    if (!picksReady || !upcomingDraw) return;
+    if (!upcomingDraw) return;
+    if (!picksReady) {
+      const detail = describeIncomplete();
+      if (detail) {
+        setPickValidationMsg(detail.msg);
+        setActiveIdx(detail.idx);
+        toast.error(detail.msg);
+      }
+      return;
+    }
     if (insufficientFunds) {
       navigate("/wallet/add-funds");
       return;
@@ -1057,9 +1108,11 @@ const LotteryDetail = () => {
 
                 <Button
                   onClick={handleBuy}
-                  disabled={buying || !picksReady || !drawAvailable}
+                  disabled={buying || !drawAvailable}
                   aria-busy={buying}
                   aria-live="polite"
+                  aria-invalid={!picksReady || !!pickValidationMsg}
+                  aria-describedby={pickValidationMsg ? "pick-validation-msg" : undefined}
                   className="mb-3 w-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
                 >
                   {buying ? (
@@ -1075,8 +1128,19 @@ const LotteryDetail = () => {
                   )}
                 </Button>
 
-                {/* Only inline error: insufficient balance (the picker
-                    prevents wrong counts/ranges/duplicates by design). */}
+                {/* Inline validation: incomplete picks (highest priority) */}
+                {pickValidationMsg && (
+                  <div
+                    id="pick-validation-msg"
+                    role="alert"
+                    className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive"
+                  >
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{pickValidationMsg}</span>
+                  </div>
+                )}
+
+                {/* Insufficient balance (only when picks are valid) */}
                 {user && wallet && insufficientFunds && picksReady && drawAvailable && (
                   <p className="mb-2 text-center text-xs font-medium text-destructive">
                     Not enough {currency} to cover {formatPrice(total, currency)}. Tap Buy to top up.
