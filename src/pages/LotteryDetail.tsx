@@ -407,11 +407,24 @@ const LotteryDetail = () => {
   // so React's hook order is stable across renders.
   const lastAdvancedFromRef = useRef<number | null>(null);
   useEffect(() => {
+    // Defensive: every dependency referenced inside this effect is
+    // checked before use. We've crashed here twice when `lottery` was
+    // momentarily undefined or when `number_format` came back malformed.
     if (!lottery || lineSlots.length <= 1) return;
-    const fmtNow = parseFormat(lottery.number_format);
+    const fmtNow = safeParseFormat("auto-advance", lottery);
+    if (!fmtNow) return;
+    if (!Array.isArray(lineSlots) || safeActiveIdx < 0 || safeActiveIdx >= lineSlots.length) {
+      warnLog("auto-advance", "invalid lineSlots / activeIdx", {
+        lineSlotsLen: lineSlots?.length,
+        safeActiveIdx,
+      });
+      return;
+    }
     const isComplete = (l: LineSlot) =>
+      !!l &&
+      Array.isArray(l.main) &&
       l.main.length === fmtNow.main.count &&
-      (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count);
+      (fmtNow.bonus.count === 0 || (Array.isArray(l.bonus) && l.bonus.length === fmtNow.bonus.count));
     const active = lineSlots[safeActiveIdx];
     if (!active || !isComplete(active)) {
       lastAdvancedFromRef.current = null;
@@ -422,6 +435,7 @@ const LotteryDetail = () => {
     for (let step = 1; step < total; step++) {
       const candidate = (safeActiveIdx + step) % total;
       if (!isComplete(lineSlots[candidate])) {
+        debugLog("auto-advance", "advancing focus", { from: safeActiveIdx, to: candidate });
         lastAdvancedFromRef.current = safeActiveIdx;
         setActiveIdx(candidate);
         return;
@@ -434,13 +448,19 @@ const LotteryDetail = () => {
   // Declared after the lottery query so `lottery` is in scope.
   useEffect(() => {
     if (!pickValidationMsg || !lottery) return;
-    const fmtNow = parseFormat(lottery.number_format);
+    const fmtNow = safeParseFormat("validation-clear", lottery);
+    if (!fmtNow) return;
     const allComplete = lineSlots.every(
       (l) =>
+        !!l &&
+        Array.isArray(l.main) &&
         l.main.length === fmtNow.main.count &&
-        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
+        (fmtNow.bonus.count === 0 || (Array.isArray(l.bonus) && l.bonus.length === fmtNow.bonus.count)),
     );
-    if (allComplete) setPickValidationMsg(null);
+    if (allComplete) {
+      debugLog("validation-clear", "all lines complete — clearing message");
+      setPickValidationMsg(null);
+    }
   }, [pickValidationMsg, lineSlots, lottery]);
 
   if (isLoading) {
@@ -475,7 +495,17 @@ const LotteryDetail = () => {
     );
   }
 
-  const fmt: NumberFormat = parseFormat(lottery.number_format);
+  // Parse the format here for the rest of the render. If parsing fails
+  // (malformed `number_format`), we throw a descriptive error so the
+  // ErrorBoundary surfaces a friendly fallback instead of a cryptic
+  // TypeError deep in the tree.
+  const fmtParsed = safeParseFormat("render", lottery);
+  if (!fmtParsed) {
+    throw new Error(
+      `Lottery "${lottery.slug ?? "unknown"}" has an invalid number_format and cannot be rendered.`,
+    );
+  }
+  const fmt: NumberFormat = fmtParsed;
   const upcomingDraw =
     (lottery.draws ?? [])
       .filter((d) => d.status === "upcoming" && secondsUntil(d.draw_date) > 0)
