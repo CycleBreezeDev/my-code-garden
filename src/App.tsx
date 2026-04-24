@@ -68,7 +68,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/lotteries" element={<Lotteries />} />
-            <Route path="/lottery/:slug" element={<LotteryDetail />} />
+            <Route path="/lottery/:slug" element={<ErrorBoundary><LotteryDetail /></ErrorBoundary>} />
             <Route path="/lotteries/:slug/history" element={<LotteryHistory />} />
             <Route path="/syndicates" element={<Syndicates />} />
             <Route path="/group/:slug" element={<GroupTicketDetail />} />
