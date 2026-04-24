@@ -52,6 +52,58 @@ import {
 import { downloadTicketReceipt } from "@/lib/ticketReceipt";
 
 // ----------------------------------------------------------------
+// Diagnostic logging
+// ----------------------------------------------------------------
+// Lightweight, dev-friendly logger used to catch TDZ / undefined-ref
+// regressions on this page early. We've had two recent crashes where
+// an effect ran before `lottery` was defined or where `number_format`
+// was an unexpected shape; this helper makes those failure modes
+// loud in the console instead of silently throwing inside React.
+const LOG_TAG = "[LotteryDetail]";
+const isDev =
+  typeof import.meta !== "undefined" && (import.meta as { env?: { DEV?: boolean } }).env?.DEV;
+
+const debugLog = (scope: string, msg: string, data?: unknown) => {
+  if (!isDev) return;
+  // eslint-disable-next-line no-console
+  console.debug(`${LOG_TAG} ${scope} →`, msg, data ?? "");
+};
+
+const warnLog = (scope: string, msg: string, data?: unknown) => {
+  // eslint-disable-next-line no-console
+  console.warn(`${LOG_TAG} ${scope} →`, msg, data ?? "");
+};
+
+/**
+ * Safe wrapper around `parseFormat` that logs and degrades gracefully
+ * when the lottery row, its number_format, or downstream parsing throws.
+ * Returns `null` on failure so callers can short-circuit instead of
+ * exploding the whole component tree.
+ */
+const safeParseFormat = (
+  scope: string,
+  lottery: { id?: string; slug?: string; number_format?: unknown } | null | undefined,
+): NumberFormat | null => {
+  if (!lottery) {
+    debugLog(scope, "lottery missing — skipping parseFormat");
+    return null;
+  }
+  if (lottery.number_format == null) {
+    warnLog(scope, "lottery.number_format is null/undefined", {
+      slug: lottery.slug,
+      id: lottery.id,
+    });
+    return null;
+  }
+  try {
+    return parseFormat(lottery.number_format);
+  } catch (err) {
+    warnLog(scope, "parseFormat threw", { err, number_format: lottery.number_format });
+    return null;
+  }
+};
+
+// ----------------------------------------------------------------
 // Data
 // ----------------------------------------------------------------
 
