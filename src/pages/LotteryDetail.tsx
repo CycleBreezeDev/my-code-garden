@@ -378,6 +378,19 @@ const LotteryDetail = () => {
     lastAdvancedFromRef.current = safeActiveIdx;
   }, [lottery, lineSlots, safeActiveIdx]);
 
+  // Clear inline pick-validation message once every line is complete.
+  // Declared after the lottery query so `lottery` is in scope.
+  useEffect(() => {
+    if (!pickValidationMsg || !lottery) return;
+    const fmtNow = parseFormat(lottery.number_format);
+    const allComplete = lineSlots.every(
+      (l) =>
+        l.main.length === fmtNow.main.count &&
+        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
+    );
+    if (allComplete) setPickValidationMsg(null);
+  }, [pickValidationMsg, lineSlots, lottery]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
