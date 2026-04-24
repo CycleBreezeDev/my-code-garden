@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import Lotteries from "./pages/Lotteries.tsx";
 import LotteryDetail from "./pages/LotteryDetail.tsx";
+import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import LotteryHistory from "./pages/LotteryHistory.tsx";
 import Syndicates from "./pages/Syndicates.tsx";
 import Results from "./pages/Results.tsx";
@@ -67,7 +68,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/lotteries" element={<Lotteries />} />
-            <Route path="/lottery/:slug" element={<LotteryDetail />} />
+            <Route path="/lottery/:slug" element={<ErrorBoundary><LotteryDetail /></ErrorBoundary>} />
             <Route path="/lotteries/:slug/history" element={<LotteryHistory />} />
             <Route path="/syndicates" element={<Syndicates />} />
             <Route path="/group/:slug" element={<GroupTicketDetail />} />
