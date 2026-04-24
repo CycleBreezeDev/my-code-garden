@@ -285,21 +285,9 @@ const LotteryDetail = () => {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
   // Inline validation message shown when the user taps Buy with
-  // incomplete picks. Cleared by an effect once the picks are valid.
+  // incomplete picks. Cleared by an effect (declared after the lottery
+  // query, below) once the picks become valid.
   const [pickValidationMsg, setPickValidationMsg] = useState<string | null>(null);
-  useEffect(() => {
-    if (!pickValidationMsg) return;
-    // Re-derive completeness here so the cleanup runs above the early
-    // returns where `fmt`/`isLineComplete` aren't in scope yet.
-    if (!lottery) return;
-    const fmtNow = parseFormat(lottery.number_format);
-    const allComplete = lineSlots.every(
-      (l) =>
-        l.main.length === fmtNow.main.count &&
-        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
-    );
-    if (allComplete) setPickValidationMsg(null);
-  }, [pickValidationMsg, lineSlots, lottery]);
 
   // Persist picks whenever they change. Empty selections clear the slot
   // so we don't waste storage on a blank slate.
@@ -389,6 +377,19 @@ const LotteryDetail = () => {
     }
     lastAdvancedFromRef.current = safeActiveIdx;
   }, [lottery, lineSlots, safeActiveIdx]);
+
+  // Clear inline pick-validation message once every line is complete.
+  // Declared after the lottery query so `lottery` is in scope.
+  useEffect(() => {
+    if (!pickValidationMsg || !lottery) return;
+    const fmtNow = parseFormat(lottery.number_format);
+    const allComplete = lineSlots.every(
+      (l) =>
+        l.main.length === fmtNow.main.count &&
+        (fmtNow.bonus.count === 0 || l.bonus.length === fmtNow.bonus.count),
+    );
+    if (allComplete) setPickValidationMsg(null);
+  }, [pickValidationMsg, lineSlots, lottery]);
 
   if (isLoading) {
     return (
