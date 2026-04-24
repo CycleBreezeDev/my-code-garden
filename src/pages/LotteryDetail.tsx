@@ -597,8 +597,11 @@ const LotteryDetail = () => {
   // states that the user can't fix from this page (no upcoming draw,
   // draw already closed, or empty picks) gate the Buy button. The only
   // *inline* error we show is insufficient wallet balance.
-  const isLineComplete = (l: LineSlot) =>
-    l.main.length === fmt.main.count && (fmt.bonus.count === 0 || l.bonus.length === fmt.bonus.count);
+  const isLineComplete = (l: LineSlot | undefined | null) =>
+    !!l &&
+    Array.isArray(l.main) &&
+    l.main.length === fmt.main.count &&
+    (fmt.bonus.count === 0 || (Array.isArray(l.bonus) && l.bonus.length === fmt.bonus.count));
   const completedLines = lineSlots.filter(isLineComplete).length;
   const allLinesReady = completedLines === lineSlots.length && lineSlots.length > 0;
   const picksReady = allLinesReady;
@@ -613,24 +616,57 @@ const LotteryDetail = () => {
   // returns so React's hook order stays stable.)
 
   // Build a friendly description of what's missing on the first
-  // incomplete line so the message is actionable.
+  // incomplete line so the message is actionable. Wrapped in a
+  // try/catch so a malformed `lineSlots` snapshot can never bubble
+  // up and crash the render path during checkout validation.
   const describeIncomplete = (): { idx: number; msg: string } | null => {
-    const idx = lineSlots.findIndex((l) => !isLineComplete(l));
-    if (idx === -1) return null;
-    const l = lineSlots[idx];
-    const parts: string[] = [];
-    const mainNeeded = fmt.main.count - l.main.length;
-    if (mainNeeded > 0) {
-      parts.push(`${mainNeeded} more main number${mainNeeded === 1 ? "" : "s"}`);
-    }
-    if (fmt.bonus.count > 0) {
-      const bonusNeeded = fmt.bonus.count - l.bonus.length;
-      if (bonusNeeded > 0) {
-        parts.push(`${bonusNeeded} more bonus number${bonusNeeded === 1 ? "" : "s"}`);
+    try {
+      const idx = lineSlots.findIndex((l) => !isLineComplete(l));
+      if (idx === -1) return null;
+      const l = lineSlots[idx] ?? emptyLine();
+      const parts: string[] = [];
+      const mainNeeded = Math.max(0, fmt.main.count - (l.main?.length ?? 0));
+      if (mainNeeded > 0) {
+        parts.push(`${mainNeeded} more main number${mainNeeded === 1 ? "" : "s"}`);
       }
+      if (fmt.bonus.count > 0) {
+        const bonusNeeded = Math.max(0, fmt.bonus.count - (l.bonus?.length ?? 0));
+        if (bonusNeeded > 0) {
+          parts.push(`${bonusNeeded} more bonus number${bonusNeeded === 1 ? "" : "s"}`);
+        }
+      }
+      if (parts.length === 0) return null;
+      const linePrefix = lineSlots.length > 1 ? `Line ${idx + 1} needs ` : "Pick ";
+      return { idx, msg: `${linePrefix}${parts.join(" and ")} to continue.` };
+    } catch (err) {
+      warnLog("describeIncomplete", "failed to describe incomplete picks", err);
+      return { idx: 0, msg: "Please complete your number selections to continue." };
     }
-    const linePrefix = lineSlots.length > 1 ? `Line ${idx + 1} needs ` : "Pick ";
-    return { idx, msg: `${linePrefix}${parts.join(" and ")} to continue.` };
+  };
+
+  // Pre-checkout gate: validates picks BEFORE any state mutation or
+  // navigation. Returns true when checkout can proceed. Kept pure (no
+  // side effects beyond setting the inline message + active line) so
+  // it's safe to call from handleBuy and any future checkout entry
+  // point without risking render-time errors.
+  const runPreCheckoutCheck = (): boolean => {
+    if (!lineSlots.length) {
+      setPickValidationMsg("Add at least one line of numbers to continue.");
+      return false;
+    }
+    if (picksReady) return true;
+    const detail = describeIncomplete();
+    if (detail) {
+      setPickValidationMsg(detail.msg);
+      // Jump to the offending line so the user can fix it immediately.
+      if (detail.idx >= 0 && detail.idx < lineSlots.length) {
+        setActiveIdx(detail.idx);
+      }
+      toast.error(detail.msg);
+    } else {
+      setPickValidationMsg("Please complete your number selections to continue.");
+    }
+    return false;
   };
 
   const handleBuy = async () => {
@@ -641,15 +677,8 @@ const LotteryDetail = () => {
       return;
     }
     if (!upcomingDraw) return;
-    if (!picksReady) {
-      const detail = describeIncomplete();
-      if (detail) {
-        setPickValidationMsg(detail.msg);
-        setActiveIdx(detail.idx);
-        toast.error(detail.msg);
-      }
-      return;
-    }
+    // Run the pre-checkout gate before any wallet / navigation work.
+    if (!runPreCheckoutCheck()) return;
     if (insufficientFunds) {
       navigate("/wallet/add-funds");
       return;
