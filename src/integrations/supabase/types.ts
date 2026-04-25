@@ -50,6 +50,167 @@ export type Database = {
         }
         Relationships: []
       }
+      dm_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_messages: {
+        Row: {
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          image_path: string | null
+          kind: string
+          reply_to_id: string | null
+          sender_id: string
+          thread_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          reply_to_id?: string | null
+          sender_id: string
+          thread_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          reply_to_id?: string | null
+          sender_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_thread_reads: {
+        Row: {
+          id: string
+          last_read_at: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_read_at?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_read_at?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_thread_reads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          last_message_preview: string | null
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      dm_typing: {
+        Row: {
+          thread_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          thread_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          thread_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_typing_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       draw_results: {
         Row: {
           bonus_numbers: number[] | null
@@ -87,6 +248,124 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feed_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_posts: {
+        Row: {
+          body: string | null
+          comments_count: number
+          created_at: string
+          id: string
+          kind: string
+          likes_count: number
+          metadata: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          comments_count?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          likes_count?: number
+          metadata?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          comments_count?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          likes_count?: number
+          metadata?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
       }
       fx_pairs: {
         Row: {
@@ -142,6 +421,156 @@ export type Database = {
           quote_currency?: string
           rate?: number
           source?: string
+        }
+        Relationships: []
+      }
+      kyc_checks: {
+        Row: {
+          created_at: string
+          id: string
+          job_type: string
+          provider: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_type: string
+          provider: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_type?: string
+          provider?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kyc_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          id: string
+          status: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type: string
+          id?: string
+          status?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          id?: string
+          status?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kyc_profiles: {
+        Row: {
+          country: string | null
+          created_at: string
+          dob: string | null
+          full_name: string | null
+          id: string
+          id_number: string | null
+          id_type: string | null
+          last_provider: string | null
+          por_verified_at: string | null
+          rejection_reason: string | null
+          selfie_verified_at: string | null
+          status: string
+          tier: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          dob?: string | null
+          full_name?: string | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          last_provider?: string | null
+          por_verified_at?: string | null
+          rejection_reason?: string | null
+          selfie_verified_at?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          dob?: string | null
+          full_name?: string | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          last_provider?: string | null
+          por_verified_at?: string | null
+          rejection_reason?: string | null
+          selfie_verified_at?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kyc_tiers: {
+        Row: {
+          daily_limit_usd: number
+          description: string | null
+          id: string
+          monthly_limit_usd: number
+          name: string
+          requires_id: boolean
+          requires_por: boolean
+          requires_selfie: boolean
+          tier: number
+        }
+        Insert: {
+          daily_limit_usd?: number
+          description?: string | null
+          id?: string
+          monthly_limit_usd?: number
+          name: string
+          requires_id?: boolean
+          requires_por?: boolean
+          requires_selfie?: boolean
+          tier: number
+        }
+        Update: {
+          daily_limit_usd?: number
+          description?: string | null
+          id?: string
+          monthly_limit_usd?: number
+          name?: string
+          requires_id?: boolean
+          requires_por?: boolean
+          requires_selfie?: boolean
+          tier?: number
         }
         Relationships: []
       }
@@ -326,6 +755,77 @@ export type Database = {
           },
         ]
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "syndicate_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          kind: string
+          metadata: Json
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind: string
+          metadata?: Json
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_recipients: {
         Row: {
           created_at: string
@@ -423,6 +923,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          cover_url: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -431,6 +932,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          cover_url?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -439,11 +941,45 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          cover_url?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      social_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          status: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
         }
         Relationships: []
       }
@@ -478,6 +1014,119 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "syndicate_memberships_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      syndicate_messages: {
+        Row: {
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          image_path: string | null
+          kind: string
+          metadata: Json
+          reply_to_id: string | null
+          syndicate_id: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          metadata?: Json
+          reply_to_id?: string | null
+          syndicate_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          metadata?: Json
+          reply_to_id?: string | null
+          syndicate_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syndicate_messages_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      syndicate_picks: {
+        Row: {
+          bonus_match_count: number | null
+          bonus_numbers: number[]
+          created_at: string
+          id: string
+          main_match_count: number | null
+          main_numbers: number[]
+          matched_at: string | null
+          membership_id: string
+          share_index: number
+          status: string
+          syndicate_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bonus_match_count?: number | null
+          bonus_numbers?: number[]
+          created_at?: string
+          id?: string
+          main_match_count?: number | null
+          main_numbers?: number[]
+          matched_at?: string | null
+          membership_id: string
+          share_index: number
+          status?: string
+          syndicate_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bonus_match_count?: number | null
+          bonus_numbers?: number[]
+          created_at?: string
+          id?: string
+          main_match_count?: number | null
+          main_numbers?: number[]
+          matched_at?: string | null
+          membership_id?: string
+          share_index?: number
+          status?: string
+          syndicate_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syndicate_picks_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "syndicate_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "syndicate_picks_syndicate_id_fkey"
             columns: ["syndicate_id"]
             isOneToOne: false
             referencedRelation: "syndicates"
@@ -572,6 +1221,183 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ticket_pick_verifications: {
+        Row: {
+          id: string
+          membership_id: string
+          share_index: number
+          syndicate_id: string
+          ticket_image_id: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          id?: string
+          membership_id: string
+          share_index: number
+          syndicate_id: string
+          ticket_image_id: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          id?: string
+          membership_id?: string
+          share_index?: number
+          syndicate_id?: string
+          ticket_image_id?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_pick_verifications_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "syndicate_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_pick_verifications_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_pick_verifications_ticket_image_id_fkey"
+            columns: ["ticket_image_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          bonus_numbers: number[]
+          created_at: string
+          currency: string
+          draw_id: string
+          id: string
+          lines: number
+          main_numbers: number[]
+          payment_reference: string | null
+          refund_reason: string | null
+          refunded_at: string | null
+          scanner_status: string | null
+          status: string
+          total_paid: number
+          user_id: string
+        }
+        Insert: {
+          bonus_numbers?: number[]
+          created_at?: string
+          currency: string
+          draw_id: string
+          id?: string
+          lines?: number
+          main_numbers: number[]
+          payment_reference?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          scanner_status?: string | null
+          status?: string
+          total_paid: number
+          user_id: string
+        }
+        Update: {
+          bonus_numbers?: number[]
+          created_at?: string
+          currency?: string
+          draw_id?: string
+          id?: string
+          lines?: number
+          main_numbers?: number[]
+          payment_reference?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          scanner_status?: string | null
+          status?: string
+          total_paid?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "lottery_draws"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_profiles_public: {
+        Row: {
+          bio: string | null
+          country_code: string | null
+          created_at: string
+          email_digest_enabled: boolean
+          followers_count: number
+          following_count: number
+          id: string
+          is_public: boolean
+          syndicates_count: number
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          bio?: string | null
+          country_code?: string | null
+          created_at?: string
+          email_digest_enabled?: boolean
+          followers_count?: number
+          following_count?: number
+          id?: string
+          is_public?: boolean
+          syndicates_count?: number
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          bio?: string | null
+          country_code?: string | null
+          created_at?: string
+          email_digest_enabled?: boolean
+          followers_count?: number
+          following_count?: number
+          id?: string
+          is_public?: boolean
+          syndicates_count?: number
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -794,6 +1620,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dm_mark_read: { Args: { _thread_id: string }; Returns: undefined }
+      dm_unread_total: { Args: never; Returns: number }
+      get_or_create_dm_thread: { Args: { _other: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -801,6 +1630,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_dm_participant: { Args: { _thread_id: string }; Returns: boolean }
       is_syndicate_member: { Args: { _syndicate_id: string }; Returns: boolean }
       join_syndicate:
         | { Args: { _shares: number; _syndicate_id: string }; Returns: string }
@@ -821,12 +1651,56 @@ export type Database = {
         }
         Returns: string
       }
+      kyc_bump_tier: {
+        Args: { _reason: string; _tier: number; _user_id: string }
+        Returns: undefined
+      }
       publish_draw_results: {
         Args: {
           _bonus_numbers: number[]
           _draw_id: string
           _prizes: Json
           _winning_numbers: number[]
+        }
+        Returns: string
+      }
+      suggested_follows: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          followers_count: number
+          full_name: string
+          user_id: string
+          username: string
+        }[]
+      }
+      upsert_syndicate_picks: {
+        Args: { _membership_id: string; _picks: Json }
+        Returns: number
+      }
+      user_feed: {
+        Args: { _before?: string; _limit?: number }
+        Returns: {
+          avatar_url: string
+          body: string
+          comments_count: number
+          created_at: string
+          full_name: string
+          id: string
+          kind: string
+          liked_by_me: boolean
+          likes_count: number
+          metadata: Json
+          user_id: string
+          username: string
+        }[]
+      }
+      wallet_buy_ticket: {
+        Args: {
+          _bonus: number[]
+          _draw_id: string
+          _lines: number
+          _main: number[]
         }
         Returns: string
       }
