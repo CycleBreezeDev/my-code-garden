@@ -133,8 +133,8 @@ ORDER BY e.bucket;
 
 BEGIN;
 
--- Reuse two existing auth users (we cannot insert into auth.users from this role).
--- Picks the two oldest users; falls back with a clear error if fewer than 2 exist.
+-- Reuse two existing users (we cannot read/insert into auth.users from this role).
+-- Picks the two oldest profile rows; falls back with a clear error if fewer than 2 exist.
 DO $$
 DECLARE
   v_user_a uuid;
@@ -148,10 +148,10 @@ DECLARE
   v_membership_id uuid;
   v_picks_count int;
 BEGIN
-  SELECT id INTO v_user_a FROM auth.users ORDER BY created_at ASC LIMIT 1;
-  SELECT id INTO v_user_b FROM auth.users WHERE id <> v_user_a ORDER BY created_at ASC LIMIT 1;
+  SELECT user_id INTO v_user_a FROM public.profiles ORDER BY created_at ASC LIMIT 1;
+  SELECT user_id INTO v_user_b FROM public.profiles WHERE user_id <> v_user_a ORDER BY created_at ASC LIMIT 1;
   IF v_user_a IS NULL OR v_user_b IS NULL THEN
-    RAISE EXCEPTION 'Need at least 2 existing auth.users to run the end-to-end smoke test';
+    RAISE EXCEPTION 'Need at least 2 existing profiles to run the end-to-end smoke test';
   END IF;
   RAISE NOTICE 'Using existing users: A=% B=%', v_user_a, v_user_b;
 
