@@ -151,7 +151,10 @@ BEGIN
   SELECT user_id INTO v_user_a FROM public.profiles ORDER BY created_at ASC LIMIT 1;
   SELECT user_id INTO v_user_b FROM public.profiles WHERE user_id <> v_user_a ORDER BY created_at ASC LIMIT 1;
   IF v_user_a IS NULL OR v_user_b IS NULL THEN
-    RAISE EXCEPTION 'Need at least 2 existing profiles to run the end-to-end smoke test';
+    RAISE NOTICE '⚠️  SKIP: need at least 2 existing profiles for the end-to-end smoke test';
+    RAISE NOTICE '    (currently % profile(s) found). Sign up a second user to enable this section.',
+                 (SELECT count(*) FROM public.profiles);
+    RETURN;
   END IF;
   RAISE NOTICE 'Using existing users: A=% B=%', v_user_a, v_user_b;
 
