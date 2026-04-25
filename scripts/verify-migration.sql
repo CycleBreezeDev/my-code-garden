@@ -133,11 +133,12 @@ ORDER BY e.bucket;
 
 BEGIN;
 
--- Create two synthetic auth users so RLS-aware RPCs can run.
+-- Reuse two existing auth users (we cannot insert into auth.users from this role).
+-- Picks the two oldest users; falls back with a clear error if fewer than 2 exist.
 DO $$
 DECLARE
-  v_user_a uuid := '11111111-1111-1111-1111-111111111111';
-  v_user_b uuid := '22222222-2222-2222-2222-222222222222';
+  v_user_a uuid;
+  v_user_b uuid;
   v_lottery_id uuid;
   v_draw_id uuid;
   v_ticket_id uuid;
@@ -147,12 +148,12 @@ DECLARE
   v_membership_id uuid;
   v_picks_count int;
 BEGIN
-  -- Insert minimal auth.users rows. Service-role context only.
-  INSERT INTO auth.users (id, email, instance_id, aud, role)
-  VALUES
-    (v_user_a, 'verify_a@test.local', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'),
-    (v_user_b, 'verify_b@test.local', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
-  ON CONFLICT (id) DO NOTHING;
+  SELECT id INTO v_user_a FROM auth.users ORDER BY created_at ASC LIMIT 1;
+  SELECT id INTO v_user_b FROM auth.users WHERE id <> v_user_a ORDER BY created_at ASC LIMIT 1;
+  IF v_user_a IS NULL OR v_user_b IS NULL THEN
+    RAISE EXCEPTION 'Need at least 2 existing auth.users to run the end-to-end smoke test';
+  END IF;
+  RAISE NOTICE 'Using existing users: A=% B=%', v_user_a, v_user_b;
 
   INSERT INTO public.profiles (user_id, full_name) VALUES
     (v_user_a, 'Verify A'), (v_user_b, 'Verify B')
