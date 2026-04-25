@@ -155,13 +155,8 @@ BEGIN
   END IF;
   RAISE NOTICE 'Using existing users: A=% B=%', v_user_a, v_user_b;
 
-  INSERT INTO public.profiles (user_id, full_name) VALUES
-    (v_user_a, 'Verify A'), (v_user_b, 'Verify B')
-  ON CONFLICT DO NOTHING;
-
-  INSERT INTO public.user_profiles_public (user_id, username) VALUES
-    (v_user_a, 'verify_a'), (v_user_b, 'verify_b')
-  ON CONFLICT DO NOTHING;
+  -- Ensure user A has a wallet for the ticket purchase.
+  -- (profiles + user_profiles_public already exist via signup trigger.)
 
   -- ---- wallet_buy_ticket end-to-end ------------------------------------
   INSERT INTO public.lotteries (slug, name, price_per_line)
@@ -173,7 +168,8 @@ BEGIN
   RETURNING id INTO v_draw_id;
 
   INSERT INTO public.wallets (user_id, currency, available_balance)
-  VALUES (v_user_a, 'USD', 50.00);
+  VALUES (v_user_a, 'USD', 50.00)
+  ON CONFLICT (user_id, currency) DO UPDATE SET available_balance = EXCLUDED.available_balance;
 
   -- Impersonate user A.
   PERFORM set_config('request.jwt.claim.sub', v_user_a::text, true);
