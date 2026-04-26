@@ -173,6 +173,13 @@
     background-image: var(--gradient-gold);
   }
 
+  /* Apply to any element you want to land cleanly under the fixed navbar
+     when targeted by an anchor link or scrollIntoView(). Keeps native and
+     JS scrolling visually aligned with smoothScrollToId(). */
+  .scroll-mt-header {
+    scroll-margin-top: var(--header-height);
+  }
+
   .glow-gold {
     box-shadow: 0 0 30px -5px hsl(var(--gold) / 0.3);
   }
