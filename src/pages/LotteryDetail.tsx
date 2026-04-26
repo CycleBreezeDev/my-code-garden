@@ -723,6 +723,15 @@ const LotteryDetail = () => {
     setBuying(false);
 
     if (firstError) {
+      track("purchase_failed", {
+        lottery_slug: slug,
+        lines_count: lineSlots.length,
+        total,
+        currency,
+        draw_id: upcomingDraw.id,
+        ticket_ids: ticketIds,
+        error: firstError.message ?? "unknown",
+      });
       const raw = firstError.message ?? "";
       const lower = raw.toLowerCase();
 
