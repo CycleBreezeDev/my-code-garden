@@ -95,7 +95,10 @@ export const EditProfileDialog = ({ open, onOpenChange, data, onSaved }: EditPro
       .update({ full_name: trimmedName || null })
       .eq("user_id", data.user_id);
     if (privErr) {
-      toast.error(privErr.message);
+      toast.error("Couldn't save settings", {
+        description: privErr.message || "We couldn't update your profile. Please try again.",
+        action: { label: "Retry", onClick: () => { void handleSave(); } },
+      });
       setSaving(false);
       return;
     }
@@ -111,11 +114,15 @@ export const EditProfileDialog = ({ open, onOpenChange, data, onSaved }: EditPro
       })
       .eq("user_id", data.user_id);
     if (pubErr) {
-      // Username uniqueness violations come back as 23505.
+      // Username uniqueness violations come back as 23505 — surface inline,
+      // not as a retry toast (retrying the same handle won't help).
       if (pubErr.code === "23505") {
         setErrors({ username: "That username is already taken" });
       } else {
-        toast.error(pubErr.message);
+        toast.error("Couldn't save settings", {
+          description: pubErr.message || "We couldn't update your profile. Please try again.",
+          action: { label: "Retry", onClick: () => { void handleSave(); } },
+        });
       }
       setSaving(false);
       return;
