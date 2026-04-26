@@ -790,6 +790,14 @@ const LotteryDetail = () => {
     toast.success("Ticket purchased! 🎟️", {
       description: `${lines} line${lines > 1 ? "s" : ""} for ${lottery.name}`,
     });
+    track("purchase_success", {
+      lottery_slug: slug,
+      lines_count: ticketIds.length,
+      total,
+      currency,
+      draw_id: upcomingDraw.id,
+      ticket_ids: ticketIds,
+    });
     setLineSlots([emptyLine()]);
     setActiveIdx(0);
     if (slug) clearStoredPick(slug);
