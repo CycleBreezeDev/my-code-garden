@@ -23,6 +23,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice, secondsUntil } from "@/lib/lotteryAssets";
 import { Clock } from "lucide-react";
 import { emitUsernameChange } from "@/lib/profileEvents";
+import { toast } from "sonner";
 
 const VALID_TABS = ["posts", "tickets", "groups", "followers", "following", "settings"] as const;
 type ProfileTab = (typeof VALID_TABS)[number];
