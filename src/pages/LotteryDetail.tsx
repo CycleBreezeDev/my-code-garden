@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { track } from "@/lib/analytics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/contexts/WalletContext";
 import {
@@ -686,6 +687,14 @@ const LotteryDetail = () => {
 
     setBuying(true);
 
+    track("purchase_start", {
+      lottery_slug: slug,
+      lines_count: lineSlots.length,
+      total,
+      currency,
+      draw_id: upcomingDraw.id,
+    });
+
     // Send each distinct line as its own RPC call so users get separate
     // ticket records per line. We submit sequentially so an early failure
     // (e.g. wallet drained) doesn't burn the remaining balance silently.
@@ -714,6 +723,15 @@ const LotteryDetail = () => {
     setBuying(false);
 
     if (firstError) {
+      track("purchase_failed", {
+        lottery_slug: slug,
+        lines_count: lineSlots.length,
+        total,
+        currency,
+        draw_id: upcomingDraw.id,
+        ticket_ids: ticketIds,
+        error: firstError.message ?? "unknown",
+      });
       const raw = firstError.message ?? "";
       const lower = raw.toLowerCase();
 
@@ -771,6 +789,14 @@ const LotteryDetail = () => {
     });
     toast.success("Ticket purchased! 🎟️", {
       description: `${lines} line${lines > 1 ? "s" : ""} for ${lottery.name}`,
+    });
+    track("purchase_success", {
+      lottery_slug: slug,
+      lines_count: ticketIds.length,
+      total,
+      currency,
+      draw_id: upcomingDraw.id,
+      ticket_ids: ticketIds,
     });
     setLineSlots([emptyLine()]);
     setActiveIdx(0);
