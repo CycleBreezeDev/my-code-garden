@@ -11,6 +11,12 @@
  */
 
 /** Pixel height of the fixed top navbar. Matches `pt-20` page padding. */
+/**
+ * Pixel height of the fixed top navbar. Matches `pt-20` page padding and
+ * the `--header-height` CSS variable in `src/index.css` (which powers
+ * `html { scroll-padding-top }` and the `.scroll-mt-header` utility).
+ * Update all three together if the navbar height ever changes.
+ */
 export const FIXED_HEADER_HEIGHT = 80;
 
 /**
