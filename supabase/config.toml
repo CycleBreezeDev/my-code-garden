@@ -1,1 +1,74 @@
 project_id = "ynlukpfiijjguydlglmy"
+
+# Edge functions deployed to this project. All expose a public
+# GET /health liveness probe (see supabase/functions/HEALTH_ENDPOINTS.md)
+# so they must keep verify_jwt = false. Auth is enforced inside each
+# handler against the user/admin/service-role token as required.
+[functions.bank-list]
+verify_jwt = false
+
+[functions.detect-country]
+verify_jwt = false
+
+[functions.fx-quote]
+verify_jwt = false
+
+[functions.github-sync-status]
+verify_jwt = false
+
+[functions.handle-email-suppression]
+verify_jwt = false
+
+[functions.handle-email-unsubscribe]
+verify_jwt = false
+
+[functions.kyc-admin-action]
+verify_jwt = false
+
+[functions.kyc-submit]
+verify_jwt = false
+
+[functions.payout-webhook-flutterwave]
+verify_jwt = false
+
+[functions.payout-webhook-paystack]
+verify_jwt = false
+
+[functions.paystack-init]
+verify_jwt = false
+
+[functions.paystack-verify]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.preview-transactional-email]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = false
+
+[functions.refresh-lottery-feeds]
+verify_jwt = false
+
+[functions.resolve-account]
+verify_jwt = false
+
+[functions.secrets-audit]
+verify_jwt = false
+
+[functions.send-transactional-email]
+verify_jwt = false
+
+[functions.wallet-init-topup]
+verify_jwt = false
+
+[functions.wallet-topup-webhook]
+verify_jwt = false
+
+[functions.withdrawal-admin-action]
+verify_jwt = false
+
+[functions.withdrawal-create]
+verify_jwt = false
