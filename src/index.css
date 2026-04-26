@@ -145,6 +145,20 @@
     scroll-padding-top: var(--header-height);
   }
 
+  /* Breakpoint-aware fixed-header height. Today mobile and desktop are
+     both 80px, but the override slot is here so we can tune one without
+     touching JS — getFixedHeaderOffset() reads --header-height live. */
+  @media (min-width: 768px) {
+    :root {
+      --header-height: 80px;
+    }
+  }
+  @media (min-width: 1280px) {
+    :root {
+      --header-height: 80px;
+    }
+  }
+
   * {
     @apply border-border;
   }
