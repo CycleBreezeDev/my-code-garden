@@ -6,11 +6,12 @@
 
 @layer base {
   :root {
-    /* Fixed-header height — kept in sync with FIXED_HEADER_HEIGHT in
-       src/lib/layout.ts. Drives both .scroll-mt-header and the global
-       html { scroll-padding-top } so JS-driven and native anchor jumps
-       land at the same spot. */
-    --header-height: 80px;
+    /* Fixed-header height — single source of truth.
+       Read from JS via getFixedHeaderOffset() / useFixedHeaderOffset()
+       and consumed by the global `html { scroll-padding-top }` rule and
+       the `.scroll-mt-header` utility. Override per breakpoint below to
+       keep mobile and desktop scroll offsets accurate. */
+    --header-height: 64px;
 
     /* Slightly warm off-white instead of pure paper — pure white made
        cards disappear and gradients look chalky. */
