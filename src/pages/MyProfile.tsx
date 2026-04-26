@@ -242,6 +242,12 @@ const MyProfile = () => {
   };
 
   const onEditSaved = async (next: Partial<MyProfileData>) => {
+    // Detect a handle change BEFORE we refetch so we can confirm it to the
+    // user with a clear "your @handle has propagated" toast.
+    const previousUsername = data?.username ?? null;
+    const usernameChanged =
+      typeof next.username === "string" && next.username !== previousUsername;
+
     // 1) Re-pull our own combined record so the header / settings forms
     //    show the new handle without waiting on the next mount.
     await refresh();
@@ -261,6 +267,15 @@ const MyProfile = () => {
       // 4) Ping the rest of the app (chat, member lists, DM threads) so
       //    they refetch their cached usernames.
       emitUsernameChange({ userId: user.id, username: next.username });
+    }
+
+    // 5) Confirm to the user that the change has propagated everywhere.
+    if (usernameChanged && next.username) {
+      toast.success(`@${next.username} is live`, {
+        description: "Your new handle now shows on profile links, posts, and chats.",
+      });
+    } else {
+      toast.success("Settings saved");
     }
   };
 
