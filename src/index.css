@@ -11,7 +11,7 @@
        and consumed by the global `html { scroll-padding-top }` rule and
        the `.scroll-mt-header` utility. Override per breakpoint below to
        keep mobile and desktop scroll offsets accurate. */
-    --header-height: 64px;
+    --header-height: 80px;
 
     /* Slightly warm off-white instead of pure paper — pure white made
        cards disappear and gradients look chalky. */
