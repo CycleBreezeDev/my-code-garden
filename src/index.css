@@ -6,10 +6,11 @@
 
 @layer base {
   :root {
-    /* Fixed-header height — kept in sync with FIXED_HEADER_HEIGHT in
-       src/lib/layout.ts. Drives both .scroll-mt-header and the global
-       html { scroll-padding-top } so JS-driven and native anchor jumps
-       land at the same spot. */
+    /* Fixed-header height — single source of truth.
+       Read from JS via getFixedHeaderOffset() / useFixedHeaderOffset()
+       and consumed by the global `html { scroll-padding-top }` rule and
+       the `.scroll-mt-header` utility. Override per breakpoint below to
+       keep mobile and desktop scroll offsets accurate. */
     --header-height: 80px;
 
     /* Slightly warm off-white instead of pure paper — pure white made
@@ -142,6 +143,20 @@
     /* Native anchor jumps (e.g. clicking a `#how-it-works` link) land
        below the fixed navbar — same offset as smoothScrollToId(). */
     scroll-padding-top: var(--header-height);
+  }
+
+  /* Breakpoint-aware fixed-header height. Today mobile and desktop are
+     both 80px, but the override slot is here so we can tune one without
+     touching JS — getFixedHeaderOffset() reads --header-height live. */
+  @media (min-width: 768px) {
+    :root {
+      --header-height: 80px;
+    }
+  }
+  @media (min-width: 1280px) {
+    :root {
+      --header-height: 80px;
+    }
   }
 
   * {
