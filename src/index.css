@@ -139,6 +139,9 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Native anchor jumps (e.g. clicking a `#how-it-works` link) land
+       below the fixed navbar — same offset as smoothScrollToId(). */
+    scroll-padding-top: var(--header-height);
   }
 
   * {
